@@ -19,9 +19,11 @@ Get real-time X/Twitter intelligence without API keys. Analyze accounts, track t
 ## What This Skill Does
 
 1. **Account Analysis** (`@username`): Analyzes recent posts, engagement patterns, content style, and audience interactions
-2. **Topic Tracking** (`#topic`): Monitors trending discussions, popular posts, and sentiment around hashtags
-3. **Keyword Monitoring** (`"keyword"`): Tracks brand mentions, competitor activity, and industry discussions
-4. **Engagement Insights**: Provides metrics on likes, replies, and viral potential
+2. **User Profile Lookup**: Direct profile data — followers, following, verification status (via AttentionVC, $0.002/user)
+3. **Follower/Following Lists**: Get a user's followers or who they follow ($0.05/page, ~200 accounts)
+4. **Topic Tracking** (`#topic`): Monitors trending discussions, popular posts, and sentiment around hashtags
+5. **Keyword Monitoring** (`"keyword"`): Tracks brand mentions, competitor activity, and industry discussions
+6. **Engagement Insights**: Provides metrics on likes, replies, and viral potential
 
 ## How to Use
 
@@ -90,6 +92,29 @@ client = setup_agent_wallet()
 If this is the first time, the client will display a QR code for funding the wallet. The user needs to add USDC on Base network ($1-5 is enough for many queries).
 
 ### 3. Execute the Query
+
+**For User Profile Lookup (cheap, direct data via AttentionVC):**
+
+Use these when you need structured profile data, follower counts, or follower/following lists — much cheaper than Grok Live Search.
+
+```python
+# Look up profiles ($0.002/user, min $0.02)
+users = client.x_user_lookup(["elonmusk", "blockrunai"])
+for u in users.users:
+    print(f"@{u.userName}: {u.followers} followers, verified={u.isBlueVerified}")
+
+# Get followers ($0.05/page, ~200 accounts)
+result = client.x_followers("blockrunai")
+for f in result.followers:
+    print(f"@{f.screen_name} - {f.description}")
+
+# Paginate through all followers
+while result.has_next_page:
+    result = client.x_followers("blockrunai", cursor=result.next_cursor)
+
+# Get followings ($0.05/page)
+followings = client.x_followings("blockrunai")
+```
 
 **For Account Analysis (@username):**
 
@@ -186,10 +211,24 @@ print(f"Query cost: ${spending['total_usd']:.4f}")
 
 ## Pricing
 
+### Direct X Data (AttentionVC) — Use for structured data
+- **User profile lookup**: $0.002/user (min $0.02 for <10 users)
+- **Follower list**: $0.05/page (~200 accounts)
+- **Following list**: $0.05/page (~200 accounts)
+
+### Grok Live Search — Use for analysis and sentiment
 - **Per source retrieved**: $0.025
 - **Typical query (10-20 sources)**: $0.25-0.50
 - **Account analysis**: ~$0.38 (15 sources)
 - **Topic tracking**: ~$0.50 (20 sources)
+
+### When to Use Which
+| Need | Use | Cost |
+|------|-----|------|
+| Profile data (followers, bio, verified) | `x_user_lookup()` | $0.02 |
+| Follower/following lists | `x_followers()` / `x_followings()` | $0.05/page |
+| Content analysis, sentiment | Grok + Live Search | $0.25-0.50 |
+| Trending topics, keyword monitoring | Grok + Live Search | $0.25-0.50 |
 
 ## Examples
 

@@ -68,9 +68,13 @@ Would you like to:
 |-----------|---------------|
 | Grok + Live Search (10 sources) | ~$0.25 |
 | Grok + Live Search (5 sources) | ~$0.13 |
+| Standalone search (10 sources) | ~$0.25 |
+| X user lookup (1-10 users) | $0.02 |
+| X followers/followings (1 page) | $0.05 |
 | GPT-5.2 query (typical) | ~$0.02 |
 | DeepSeek query | ~$0.001 |
 | DALL-E image | $0.04 |
+| Image editing (img2img) | $0.02-0.04 |
 
 ## Output Guidelines
 
@@ -108,11 +112,15 @@ You have a wallet. When you need a capability you lack, you pay for it autonomou
 | You Need | You Call | Pricing |
 |----------|----------|---------|
 | Image generation | DALL-E | $0.04/image |
+| Image editing (img2img) | `client.image_edit()` | $0.02-0.04/image |
 | Real-time X data | Grok + Live Search | $0.025/source |
+| X user profiles | `client.x_user_lookup()` | $0.002/user (min $0.02) |
+| X followers/followings | `client.x_followers()` / `x_followings()` | $0.05/page |
+| Web + X + news search | `client.search()` | ~$0.25 (10 sources) |
 | Second opinion | GPT-5.2 | $1.75/M input, $14/M output |
 | Cheaper processing | DeepSeek | $0.14/M input, $0.28/M output |
 
-**How it works:** BlockRun uses x402 micropayments to route your requests to OpenAI, xAI, Google, and other providers. No API keys needed - your wallet pays per token.
+**How it works:** BlockRun uses x402 micropayments to route your requests to OpenAI, xAI, Google, AttentionVC, and other providers. No API keys needed - your wallet pays per request.
 
 ## Budget Control (Optional)
 
@@ -161,9 +169,13 @@ Users will say things like:
 | User Says | What You Do |
 |-----------|-------------|
 | "blockrun generate an image of a sunset" | Call DALL-E via ImageClient |
+| "blockrun edit this image to add a rainbow" | Call `client.image_edit()` |
 | "use grok to check what's trending on X" | Call Grok with `search=True` |
+| "blockrun lookup @elonmusk on X" | Call `client.x_user_lookup()` (cheaper than Grok) |
+| "blockrun get followers of @blockrunai" | Call `client.x_followers()` |
+| "blockrun search latest AI news" | Call `client.search()` |
 | "blockrun GPT review this code" | Call GPT-5.2 via LLMClient |
-| "what's the latest news about AI agents?" | Suggest Grok (you lack real-time data) |
+| "what's the latest news about AI agents?" | Suggest search or Grok (you lack real-time data) |
 | "generate a logo for my startup" | Suggest DALL-E (you can't generate images) |
 | "blockrun check my balance" | Show wallet balance via `get_balance()` |
 | "blockrun deepseek summarize this file" | Call DeepSeek for cost savings |
@@ -273,6 +285,60 @@ result = client.generate("A cute cat wearing a space helmet")
 print(result.data[0].url)
 ```
 
+### Image Editing (img2img)
+```python
+from blockrun_llm import setup_agent_wallet
+
+client = setup_agent_wallet()
+result = client.image_edit(
+    prompt="Make the sky purple and add northern lights",
+    image="data:image/png;base64,...",  # base64 or URL
+)
+print(result.data[0].url)
+```
+
+### Standalone Search
+```python
+from blockrun_llm import setup_agent_wallet
+
+client = setup_agent_wallet()
+result = client.search("latest AI agent frameworks 2026")
+print(result.summary)
+for cite in result.citations or []:
+    print(f"  - {cite}")
+```
+
+### X/Twitter User Lookup (Powered by AttentionVC)
+```python
+from blockrun_llm import setup_agent_wallet
+
+client = setup_agent_wallet()
+
+# Look up user profiles ($0.002/user, min $0.02)
+users = client.x_user_lookup(["elonmusk", "blockrunai"])
+for u in users.users:
+    print(f"@{u.userName}: {u.followers} followers, verified={u.isBlueVerified}")
+```
+
+### X/Twitter Followers & Followings
+```python
+from blockrun_llm import setup_agent_wallet
+
+client = setup_agent_wallet()
+
+# Get followers ($0.05/page, ~200 accounts)
+result = client.x_followers("blockrunai")
+for f in result.followers:
+    print(f"@{f.screen_name}")
+
+# Paginate
+while result.has_next_page:
+    result = client.x_followers("blockrunai", cursor=result.next_cursor)
+
+# Get followings
+followings = client.x_followings("blockrunai")
+```
+
 ## xAI Live Search Reference
 
 Live Search is xAI's real-time data API. Cost: **$0.025 per source** (default 10 sources = ~$0.26).
@@ -357,7 +423,11 @@ All LLM costs are per million tokens (M = 1,000,000 tokens).
 | Fixed Cost Actions | |
 |-------|--------|
 | Grok Live Search | $0.025/source (default 10 = $0.25) |
+| Standalone search | $0.025/source (default 10 = $0.25) |
+| X user lookup | $0.002/user (min $0.02) |
+| X followers/followings | $0.05/page (~200 accounts) |
 | DALL-E image | $0.04/image |
+| Image editing (img2img) | $0.02-0.04/image |
 | Nano Banana image | $0.01/image |
 
 **Typical costs:** A 500-word prompt (~750 tokens) to GPT-5.2 costs ~$0.001 input. A 1000-word response (~1500 tokens) costs ~$0.02 output.
