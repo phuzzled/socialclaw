@@ -118,9 +118,11 @@ You have a wallet. When you need a capability you lack, you pay for it autonomou
 | X followers/followings | `client.x_followers()` / `x_followings()` | $0.05/page |
 | Web + X + news search | `client.search()` | ~$0.25 (10 sources) |
 | Second opinion | GPT-5.2 | $1.75/M input, $14/M output |
-| Cheaper processing | DeepSeek | $0.14/M input, $0.28/M output |
+| Cheaper processing | DeepSeek | $0.28/M input, $0.42/M output |
 
 **How it works:** BlockRun uses x402 micropayments to route your requests to OpenAI, xAI, Google, AttentionVC, and other providers. No API keys needed - your wallet pays per request.
+
+**Chains supported:** Base (default via `LLMClient`) and Solana (via `SolanaLLMClient` — `pip install blockrun-llm[solana]`). All endpoints work on both chains.
 
 ## Budget Control (Optional)
 
@@ -402,7 +404,7 @@ response = client.chat("xai/grok-3", "What's trending?",
 | `openai/o4-mini` | Latest efficient reasoning | $1.10/M in, $4.40/M out |
 | `openai/o3` | Advanced reasoning, complex problems | $10/M in, $40/M out |
 | `xai/grok-3` | Real-time X/Twitter data | $3/M + $0.025/source |
-| `deepseek/deepseek-chat` | Simple tasks, bulk processing | $0.14/M in, $0.28/M out |
+| `deepseek/deepseek-chat` | Simple tasks, bulk processing | $0.28/M in, $0.42/M out |
 | `google/gemini-2.5-flash` | Very long documents, fast | $0.15/M in, $0.60/M out |
 | `openai/dall-e-3` | Photorealistic images | $0.04/image |
 | `google/nano-banana` | Fast, artistic images | $0.01/image |
@@ -418,7 +420,7 @@ All LLM costs are per million tokens (M = 1,000,000 tokens).
 | GPT-5.2 | $1.75/M | $14.00/M |
 | GPT-5-mini | $0.30/M | $1.20/M |
 | Grok-3 (no search) | $3.00/M | $15.00/M |
-| DeepSeek | $0.14/M | $0.28/M |
+| DeepSeek | $0.28/M | $0.42/M |
 
 | Fixed Cost Actions | |
 |-------|--------|

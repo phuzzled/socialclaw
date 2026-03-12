@@ -9,6 +9,7 @@
 [![Models](https://img.shields.io/badge/Models-30+-green.svg)](https://blockrun.ai/models)
 [![Providers](https://img.shields.io/badge/Providers-5-blue.svg)](https://blockrun.ai)
 [![Payment](https://img.shields.io/badge/Payment-USDC_on_Base-purple.svg)](USDC_ON_BASE.md)
+[![Solana](https://img.shields.io/badge/Payment-USDC_on_Solana-9945FF.svg)](https://sol.blockrun.ai)
 [![No API Keys](https://img.shields.io/badge/API_Keys-None_Required-brightgreen.svg)](https://blockrun.ai)
 [![License](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
@@ -107,7 +108,8 @@ For more control or Antigravity compatibility:
 
 **Step 1: Install the Python SDK**
 ```bash
-pip install blockrun-llm
+pip install blockrun-llm              # Base chain (EVM/USDC)
+pip install blockrun-llm[solana]      # Base + Solana payments
 ```
 
 **Step 2: Install the skill for your platform**
@@ -162,6 +164,27 @@ Your wallet balance = your agent's spending cap. When it runs out, the agent sto
 
 **New to crypto?** [USDC Guide](USDC_ON_BASE.md) — 5 minute setup.
 
+### Solana Payment
+
+Prefer Solana? Pay with Solana USDC via [sol.blockrun.ai](https://sol.blockrun.ai):
+
+```python
+from blockrun_llm import SolanaLLMClient
+
+# SOLANA_WALLET_KEY env var (bs58-encoded Solana secret key)
+client = SolanaLLMClient()
+response = client.chat("openai/gpt-4o", "gm Solana")
+
+# All v0.6.0 endpoints work on Solana too
+users = client.x_user_lookup(["blockrunai"])
+result = client.search("latest AI news")
+```
+
+```bash
+pip install blockrun-llm[solana]
+export SOLANA_WALLET_KEY="your-bs58-solana-key"
+```
+
 ---
 
 ## Available Models
@@ -195,6 +218,8 @@ Direct X/Twitter data access — no Grok needed:
 |----------|-------------|------|
 | `search()` | Standalone web + X + news search | ~$0.25 (10 sources) |
 | `image_edit()` | Edit images with text prompts (img2img) | $0.02-0.04/image |
+
+All endpoints above work on both **Base** (`LLMClient`) and **Solana** (`SolanaLLMClient`).
 
 ---
 
