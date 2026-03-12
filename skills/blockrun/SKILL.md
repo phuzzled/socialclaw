@@ -11,13 +11,49 @@ allowed-tools: Read, Bash(python:*), Bash(python3:*), Bash(pip:*), Bash(source:*
 
 You can't generate images. You have no real-time X/Twitter access. BlockRun gives you these capabilities.
 
+## CRITICAL: Use the SDK, NOT MCP Tools
+
+**NEVER use `blockrun_twitter`, `blockrun_chat`, `blockrun_image`, or any MCP tools for BlockRun operations.**
+
+Always use the `blockrun_llm` Python SDK via Bash. The MCP tools are for simple demos only. The SDK gives you structured data, pagination, CSV export, and proper error handling.
+
+**Wrong:** `blockrun_twitter(query: "@username")` — unstructured, no pagination, wastes money
+**Right:** `client.x_followings("username")` — structured data, pagination, export-ready
+
+## Quick Decision Tree
+
+When the user asks for something, find the matching row and run the code. Do NOT explore, do NOT fetch GitHub docs, do NOT inspect signatures. Just run it.
+
+| User Wants | Method | Cost | Code Section |
+|------------|--------|------|--------------|
+| X/Twitter followings list | `client.x_followings(username)` | $0.05/page | [Bulk Followings Export](#bulk-followings-export-to-csv) |
+| X/Twitter followers list | `client.x_followers(username)` | $0.05/page | [Bulk Followers Export](#bulk-followers-export-to-csv) |
+| X/Twitter user profile | `client.x_user_lookup([usernames])` | $0.02 | [User Lookup](#x-user-lookup) |
+| Real-time X/Twitter posts | `client.chat("xai/grok-3", prompt, search=True)` | ~$0.25 | [Live Search](#real-time-xtwitter-search) |
+| Web/news search | `client.search(query)` | ~$0.25 | [Standalone Search](#standalone-search) |
+| Image generation | `client.generate(prompt)` | $0.01-$0.04 | [Image Generation](#image-generation) |
+| Image editing | `client.image_edit(prompt, image)` | $0.02-$0.04 | [Image Editing](#image-editing) |
+| LLM chat (GPT, DeepSeek, etc) | `client.chat(model, prompt)` | varies | [Basic Chat](#basic-chat) |
+| Check balance | `client.get_balance()` | free | [Wallet & Balance](#wallet--balance) |
+
+## Execution Flow (Every Time)
+
+**Always run as ONE Python script.** Do not split into multiple calls.
+
+```
+1. Import + create client (setup_agent_wallet)
+2. Check balance
+3. Estimate cost, show to user, ask to proceed
+4. If confirmed: execute, show results, show cost
+```
+
 ## How to Invoke
 
 Users can trigger this skill in two ways:
 - **Slash command:** `/blockrun <request>` (e.g., `/blockrun use grok to analyze @elonmusk`)
 - **Keyword in message:** Include "blockrun" or model names (e.g., "blockrun grok find trending crypto", "use grok to check...")
 
-Common triggers: `blockrun`, `use grok`, `use gpt`, `dall-e`, `deepseek`, `generate image`
+Common triggers: `blockrun`, `use grok`, `use gpt`, `dall-e`, `deepseek`, `generate image`, `following`, `followers`, `x.com`, `twitter`
 
 ## CRITICAL: Balance Check Before API Calls
 
@@ -35,11 +71,11 @@ address = client.get_wallet_address()
 ### Step 2: Estimate Cost & Ask User
 Before calling any model, show the user:
 ```
-📊 Wallet Status
+Wallet Status
    Address: 0x413c...1DC3
    Balance: $0.39 USDC
 
-💰 Estimated Cost
+Estimated Cost
    Grok + Live Search (10 sources): ~$0.25
 
 Proceed? (Balance after: ~$0.14)
@@ -50,7 +86,7 @@ Wait for user confirmation before making the API call.
 ### Step 3: Handle Insufficient Balance
 If balance is too low, show a friendly message:
 ```
-⚠️ Insufficient balance for this operation.
+Insufficient balance for this operation.
 
 Current: $0.05 USDC
 Required: ~$0.25 (Grok + Live Search)
@@ -70,7 +106,8 @@ Would you like to:
 | Grok + Live Search (5 sources) | ~$0.13 |
 | Standalone search (10 sources) | ~$0.25 |
 | X user lookup (1-10 users) | $0.02 |
-| X followers/followings (1 page) | $0.05 |
+| X followers/followings (1 page ~200 accounts) | $0.05 |
+| X followers/followings (1000 accounts, ~5 pages) | ~$0.25 |
 | GPT-5.2 query (typical) | ~$0.02 |
 | DeepSeek query | ~$0.001 |
 | DALL-E image | $0.04 |
@@ -85,25 +122,115 @@ Would you like to:
 - **Concise results** - For balance checks: just show wallet address and balance. For X/Twitter: summarize the findings, don't show raw API responses.
 - **Show cost at the end** - After BlockRun operations, show what was spent: `Cost: $0.28`
 
-**Example good output:**
-```
-@BlockRunAI Twitter Summary:
-- Recent focus: Circle partnership, Grok integration, website redesign
-- Top post: Circle announcement (1,637 views, 26 likes)
-- Assessment: Active development, growing visibility
+---
 
-Cost: $0.28
+## Complete Copy-Paste Scripts
+
+### Bulk Followings Export to CSV
+
+When user asks "get followings for @username" or "export following list to CSV":
+
+```python
+from blockrun_llm import setup_agent_wallet
+import csv, os
+
+client = setup_agent_wallet()
+username = "bc1beat"  # CHANGE THIS
+
+# Paginate all followings
+all_followings = []
+cursor = None
+while True:
+    result = client.x_followings(username, cursor=cursor)
+    all_followings.extend(result.followings)
+    print(f"Fetched {len(all_followings)} followings so far...")
+    if not result.has_next_page:
+        break
+    cursor = result.next_cursor
+
+# Write CSV
+outfile = os.path.expanduser(f"~/Desktop/{username}_followings.csv")
+with open(outfile, "w", newline="") as f:
+    writer = csv.writer(f)
+    writer.writerow(["screen_name", "name", "followers", "following", "verified", "description"])
+    for u in all_followings:
+        writer.writerow([
+            getattr(u, "screen_name", ""),
+            getattr(u, "name", ""),
+            getattr(u, "followers_count", ""),
+            getattr(u, "following_count", ""),
+            getattr(u, "is_blue_verified", ""),
+            getattr(u, "description", "").replace("\n", " ")[:100],
+        ])
+
+print(f"\nDone! {len(all_followings)} followings saved to {outfile}")
+spending = client.get_spending()
+print(f"Cost: ${spending['total_usd']:.4f}")
+client.close()
 ```
 
-**Example bad output:**
+### Bulk Followers Export to CSV
+
+When user asks "get followers for @username" or "export follower list":
+
+```python
+from blockrun_llm import setup_agent_wallet
+import csv, os
+
+client = setup_agent_wallet()
+username = "blockrunai"  # CHANGE THIS
+
+# Paginate all followers
+all_followers = []
+cursor = None
+while True:
+    result = client.x_followers(username, cursor=cursor)
+    all_followers.extend(result.followers)
+    print(f"Fetched {len(all_followers)} followers so far...")
+    if not result.has_next_page:
+        break
+    cursor = result.next_cursor
+
+# Write CSV
+outfile = os.path.expanduser(f"~/Desktop/{username}_followers.csv")
+with open(outfile, "w", newline="") as f:
+    writer = csv.writer(f)
+    writer.writerow(["screen_name", "name", "followers", "following", "verified", "description"])
+    for u in all_followers:
+        writer.writerow([
+            getattr(u, "screen_name", ""),
+            getattr(u, "name", ""),
+            getattr(u, "followers_count", ""),
+            getattr(u, "following_count", ""),
+            getattr(u, "is_blue_verified", ""),
+            getattr(u, "description", "").replace("\n", " ")[:100],
+        ])
+
+print(f"\nDone! {len(all_followers)} followers saved to {outfile}")
+spending = client.get_spending()
+print(f"Cost: ${spending['total_usd']:.4f}")
+client.close()
 ```
-Error: Exit code 1
-Traceback (most recent call last):
-  File "<string>", line 31...
-[retrying with different RPC]
-[still failing, trying another]
-...
+
+### X User Lookup
+
+When user asks "look up @username profile" or "who is @username":
+
+```python
+from blockrun_llm import setup_agent_wallet
+
+client = setup_agent_wallet()
+users = client.x_user_lookup(["elonmusk", "blockrunai"])  # CHANGE THESE
+for u in users.users:
+    print(f"@{u.userName}: {u.followers} followers, verified={u.isBlueVerified}")
+    print(f"  Bio: {u.description[:100]}")
+
+spending = client.get_spending()
+print(f"\nCost: ${spending['total_usd']:.4f}")
+client.close()
 ```
+
+---
 
 ## Philosophy
 
@@ -144,7 +271,7 @@ else:
 
 # At the end, report spending
 spending = client.get_spending()
-print(f"💰 Total spent: ${spending['total_usd']:.4f} across {spending['calls']} calls")
+print(f"Total spent: ${spending['total_usd']:.4f} across {spending['calls']} calls")
 ```
 
 ## When to Use
@@ -166,15 +293,14 @@ print(f"💰 Total spent: ${spending['total_usd']:.4f} across {spending['calls']
 
 ## Example User Prompts
 
-Users will say things like:
-
 | User Says | What You Do |
 |-----------|-------------|
 | "blockrun generate an image of a sunset" | Call DALL-E via ImageClient |
 | "blockrun edit this image to add a rainbow" | Call `client.image_edit()` |
 | "use grok to check what's trending on X" | Call Grok with `search=True` |
 | "blockrun lookup @elonmusk on X" | Call `client.x_user_lookup()` (cheaper than Grok) |
-| "blockrun get followers of @blockrunai" | Call `client.x_followers()` |
+| "blockrun get followers of @blockrunai" | Call `client.x_followers()` with pagination |
+| "find @username following" / "get following list" | Call `client.x_followings()` with pagination, export CSV |
 | "blockrun search latest AI news" | Call `client.search()` |
 | "blockrun GPT review this code" | Call GPT-5.2 via LLMClient |
 | "what's the latest news about AI agents?" | Suggest search or Grok (you lack real-time data) |
@@ -234,7 +360,7 @@ spending = client.get_spending()
 print(f"Spent ${spending['total_usd']:.4f}")
 ```
 
-### Real-time X/Twitter Search (xAI Live Search)
+### Real-time X/Twitter Search
 
 **IMPORTANT:** For real-time X/Twitter data, you MUST enable Live Search with `search=True` or `search_parameters`.
 
@@ -287,7 +413,7 @@ result = client.generate("A cute cat wearing a space helmet")
 print(result.data[0].url)
 ```
 
-### Image Editing (img2img)
+### Image Editing
 ```python
 from blockrun_llm import setup_agent_wallet
 
@@ -308,37 +434,6 @@ result = client.search("latest AI agent frameworks 2026")
 print(result.summary)
 for cite in result.citations or []:
     print(f"  - {cite}")
-```
-
-### X/Twitter User Lookup (Powered by AttentionVC)
-```python
-from blockrun_llm import setup_agent_wallet
-
-client = setup_agent_wallet()
-
-# Look up user profiles ($0.002/user, min $0.02)
-users = client.x_user_lookup(["elonmusk", "blockrunai"])
-for u in users.users:
-    print(f"@{u.userName}: {u.followers} followers, verified={u.isBlueVerified}")
-```
-
-### X/Twitter Followers & Followings
-```python
-from blockrun_llm import setup_agent_wallet
-
-client = setup_agent_wallet()
-
-# Get followers ($0.05/page, ~200 accounts)
-result = client.x_followers("blockrunai")
-for f in result.followers:
-    print(f"@{f.screen_name}")
-
-# Paginate
-while result.has_next_page:
-    result = client.x_followers("blockrunai", cursor=result.next_cursor)
-
-# Get followings
-followings = client.x_followings("blockrunai")
 ```
 
 ## xAI Live Search Reference
@@ -509,10 +604,10 @@ Both chains access the same models and endpoints. Choose based on where the user
 ## Troubleshooting
 
 **PaymentError: Payment was rejected**
-→ NEVER show raw stack traces. Always check balance first (see "CRITICAL: Balance Check" section above).
+-> NEVER show raw stack traces. Always check balance first (see "CRITICAL: Balance Check" section above).
 If you get this error, show a user-friendly message:
 ```
-⚠️ Payment failed - insufficient balance.
+Payment failed - insufficient balance.
 
 Current balance: $0.05 USDC
 Wallet: 0x413c7846194698829F8605C631c06c91B7B71DC3
@@ -524,13 +619,13 @@ Options:
 ```
 
 **"Grok says it has no real-time access"**
-→ You forgot to enable Live Search. Add `search=True`:
+-> You forgot to enable Live Search. Add `search=True`:
 ```python
 response = client.chat("xai/grok-3", "What's trending?", search=True)
 ```
 
 **Module not found**
-→ Install the SDK: `pip install blockrun-llm`
+-> Install the SDK: `pip install blockrun-llm`
 
 ## Error Handling Pattern
 
@@ -545,7 +640,7 @@ estimated_cost = 0.25  # Grok + Live Search
 
 # Pre-flight check
 if balance < estimated_cost:
-    print(f"⚠️ Insufficient balance: ${balance:.2f} USDC")
+    print(f"Insufficient balance: ${balance:.2f} USDC")
     print(f"Required: ~${estimated_cost:.2f}")
     print(f"Wallet: {client.get_wallet_address()}")
     # Ask user what to do
@@ -556,7 +651,7 @@ else:
         print(response)
         print(f"\nCost: ${client.get_spending()['total_usd']:.2f}")
     except PaymentError:
-        print("⚠️ Payment failed. Balance may have changed.")
+        print("Payment failed. Balance may have changed.")
 ```
 
 ## Updates
