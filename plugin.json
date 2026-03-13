@@ -1,6 +1,6 @@
 {
   "name": "blockrun",
-  "version": "0.7.1",
+  "version": "0.7.2",
   "description": "Real-time X/Twitter data (15 endpoints), image generation, and 30+ AI models for your agent — no API keys, just USDC micropayments",
   "author": {
     "name": "BlockRun",

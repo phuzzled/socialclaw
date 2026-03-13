@@ -38,9 +38,9 @@ fi
 
 # Install SDK with fallbacks for different Python setups
 if [ "$CHAIN" = "solana" ]; then
-    PKG="blockrun-llm[solana]>=0.7.1"
+    PKG="blockrun-llm[solana]>=0.7.2"
 else
-    PKG="blockrun-llm>=0.7.1"
+    PKG="blockrun-llm>=0.7.2"
 fi
 echo "Installing Python SDK ($PKG)..."
 if pip install --upgrade "$PKG" >/dev/null 2>&1; then
@@ -107,7 +107,7 @@ if chain == "solana":
         v = getattr(blockrun_llm, '__version__', 'unknown')
         print(f'\nERROR: Solana wallet requires blockrun-llm >= 0.7.0 (installed: {v})')
         print(f'Import error: {e}')
-        print('Fix: pip install --upgrade --no-cache-dir "blockrun-llm[solana]>=0.7.1"')
+        print('Fix: pip install --upgrade --no-cache-dir "blockrun-llm[solana]>=0.7.2"')
         sys.exit(1)
 else:
     from blockrun_llm import setup_agent_wallet, save_wallet_qr
@@ -143,10 +143,12 @@ PYEOF
 # Delay so user can read output before QR opens
 sleep 3
 
-# Open QR code AFTER all text is printed
-for qr in "$HOME/.blockrun/qr.png" "$HOME/.blockrun/solana_qr.png"; do
-    if [ -f "$qr" ]; then
-        open "$qr" 2>/dev/null || xdg-open "$qr" 2>/dev/null || true
-        break
-    fi
-done
+# Open QR code for the SELECTED chain only (don't show Base QR for Solana users)
+if [ "$CHAIN" = "solana" ]; then
+    QR_FILE="$HOME/.blockrun/solana_qr.png"
+else
+    QR_FILE="$HOME/.blockrun/qr.png"
+fi
+if [ -f "$QR_FILE" ]; then
+    open "$QR_FILE" 2>/dev/null || xdg-open "$QR_FILE" 2>/dev/null || true
+fi

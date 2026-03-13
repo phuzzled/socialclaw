@@ -15,22 +15,67 @@ You can't generate images. You have no real-time X/Twitter access. BlockRun give
 
 **NEVER use MCP tools (`blockrun_twitter`, `blockrun_chat`, etc.) for BlockRun operations.**
 **NEVER make raw API calls with `curl` or `httpx` to blockrun.ai endpoints.**
+**NEVER search source code, grep codebases, or `find` files to understand BlockRun endpoints.** Everything you need is in THIS file.
 
-Always use the `blockrun_llm` Python SDK via Bash. The SDK handles authentication, payment signatures, pagination, and structured responses.
+Always use the `blockrun_llm` Python SDK via Bash. The SDK handles authentication, x402 payment signatures, pagination, and structured responses automatically.
 
-**Wrong:** `curl -X POST https://sol.blockrun.ai/api/v1/...` — no auth, will 404
+**Wrong:** `curl -X POST https://sol.blockrun.ai/api/v1/...` — no auth, will fail
 **Wrong:** `blockrun_twitter(query: "@username")` — unstructured, wastes money
 **Wrong:** `from blockrun_llm.solana_client import SolanaBlockRunClient` — class doesn't exist
+**Wrong:** `find ~/Documents -name "*.ts" | xargs grep "attentionvc"` — never search source code
 **Right:** `client.x_user_tweets("username")` — structured data, pagination, export-ready
+
+### If User Gives You a Raw API URL
+
+Users may paste URLs like `https://sol.blockrun.ai/api/v1/partner/attentionvc/tweets/lookup`. **Do NOT try to call these URLs directly.** Map them to SDK methods using this table:
+
+| API URL Contains | SDK Method |
+|-----------------|------------|
+| `/x/user/lookup` or `/attentionvc/user/lookup` | `client.x_user_lookup(["user1", ...])` |
+| `/x/user/info` | `client.x_user_info("username")` |
+| `/x/followers` | `client.x_followers("username")` |
+| `/x/followings` | `client.x_followings("username")` |
+| `/x/verified-followers` | `client.x_verified_followers("user_id")` |
+| `/x/tweets` or `/attentionvc/tweets` | `client.x_user_tweets("username")` |
+| `/x/mentions` | `client.x_user_mentions("username")` |
+| `/tweets/lookup` or `/attentionvc/tweets/lookup` | `client.x_tweet_lookup(["id1", ...])` |
+| `/tweets/replies` | `client.x_tweet_replies("tweet_id")` |
+| `/tweets/thread` | `client.x_tweet_thread("tweet_id")` |
+| `/x/search` | `client.x_search("query")` |
+| `/x/trending` | `client.x_trending()` |
+| `/x/articles` | `client.x_articles_rising()` |
+| `/x/analytics` | `client.x_author_analytics("handle")` |
+| `/x/compare` | `client.x_compare_authors("h1", "h2")` |
+| `/chat/completions` | `client.chat("model", "prompt")` |
 
 ### Class Names (Don't Guess)
 - Base chain: `LLMClient` (via `setup_agent_wallet()`)
 - Solana chain: `SolanaLLMClient` (via `setup_agent_solana_wallet()`)
 - There is NO class called `SolanaBlockRunClient`, `BlockRunClient`, or `SolanaClient`
 
+## CRITICAL: Check Chain Preference FIRST
+
+**Before creating any client, ALWAYS check `~/.blockrun/.chain`.** This file is set during install. If the user installed with Solana, you MUST use the Solana client.
+
+```python
+from pathlib import Path
+
+chain_file = Path.home() / ".blockrun" / ".chain"
+chain = chain_file.read_text().strip() if chain_file.exists() else "base"
+
+if chain == "solana":
+    from blockrun_llm import setup_agent_solana_wallet
+    client = setup_agent_solana_wallet()  # SolanaLLMClient — pays with Solana USDC
+else:
+    from blockrun_llm import setup_agent_wallet
+    client = setup_agent_wallet()  # LLMClient — pays with Base USDC
+```
+
+**Both clients have identical methods.** Every `client.x_followers()`, `client.chat()`, etc. works the same on both chains. The only difference is which blockchain handles payment.
+
 ## Quick Decision Tree
 
-When the user asks for something, find the matching row and run the code. Do NOT explore, do NOT fetch GitHub docs, do NOT inspect signatures. Just run it.
+When the user asks for something, find the matching row and run the code. Do NOT explore, do NOT fetch GitHub docs, do NOT inspect signatures, do NOT search source code. Just run it.
 
 | User Wants | Method | Parameter | Cost |
 |------------|--------|-----------|------|
@@ -63,28 +108,11 @@ When the user asks for something, find the matching row and run the code. Do NOT
 **Always run as ONE Python script.** Do not split into multiple calls.
 
 ```
-1. Check chain preference (~/.blockrun/.chain) → "base" or "solana"
-   - If no preference file exists, ask user: "Base (USDC on Base) or Solana (USDC on Solana)?"
-   - Save their choice to ~/.blockrun/.chain
+1. Check chain preference (~/.blockrun/.chain) — already handled in "Check Chain Preference FIRST" above
 2. Create client (setup_agent_wallet for Base, setup_agent_solana_wallet for Solana)
 3. Check balance
 4. Estimate cost, show to user, ask to proceed
 5. If confirmed: execute, show results, show cost
-```
-
-### Chain Selection Helper
-```python
-from pathlib import Path
-
-chain_file = Path.home() / ".blockrun" / ".chain"
-chain = chain_file.read_text().strip() if chain_file.exists() else None
-
-if chain == "solana":
-    from blockrun_llm import setup_agent_solana_wallet
-    client = setup_agent_solana_wallet()
-else:
-    from blockrun_llm import setup_agent_wallet
-    client = setup_agent_wallet()
 ```
 
 If user wants to switch chains: `echo "solana" > ~/.blockrun/.chain` (or `"base"`).
@@ -103,21 +131,9 @@ Common triggers: `blockrun`, `use grok`, `use gpt`, `dall-e`, `deepseek`, `gener
 
 ### Step 1: Check Balance First
 ```python
-from pathlib import Path
-
-chain_file = Path.home() / ".blockrun" / ".chain"
-chain = chain_file.read_text().strip() if chain_file.exists() else "base"
-
-if chain == "solana":
-    from blockrun_llm import setup_agent_solana_wallet, get_solana_usdc_balance
-    client = setup_agent_solana_wallet()
-    address = client.get_wallet_address()
-    balance = get_solana_usdc_balance(address)
-else:
-    from blockrun_llm import setup_agent_wallet
-    client = setup_agent_wallet()
-    balance = client.get_balance()
-    address = client.get_wallet_address()
+# Use the chain-aware client from "Check Chain Preference FIRST" section above
+balance = client.get_balance()  # Works on both Base and Solana
+address = client.get_wallet_address()
 ```
 
 ### Step 2: Estimate Cost & Ask User
