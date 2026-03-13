@@ -38,9 +38,9 @@ fi
 
 # Install SDK with fallbacks for different Python setups
 if [ "$CHAIN" = "solana" ]; then
-    PKG="blockrun-llm[solana]>=0.7.0"
+    PKG="blockrun-llm[solana]>=0.7.1"
 else
-    PKG="blockrun-llm>=0.7.0"
+    PKG="blockrun-llm>=0.7.1"
 fi
 echo "Installing Python SDK ($PKG)..."
 if pip install --upgrade "$PKG" >/dev/null 2>&1; then
@@ -107,7 +107,7 @@ if chain == "solana":
         v = getattr(blockrun_llm, '__version__', 'unknown')
         print(f'\nERROR: Solana wallet requires blockrun-llm >= 0.7.0 (installed: {v})')
         print(f'Import error: {e}')
-        print('Fix: pip install --upgrade --no-cache-dir "blockrun-llm[solana]>=0.7.0"')
+        print('Fix: pip install --upgrade --no-cache-dir "blockrun-llm[solana]>=0.7.1"')
         sys.exit(1)
 else:
     from blockrun_llm import setup_agent_wallet, save_wallet_qr
