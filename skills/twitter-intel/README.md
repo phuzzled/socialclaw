@@ -40,7 +40,7 @@ Plus **Grok Live Search** for sentiment analysis (~$0.25/query).
 This is part of BlockRun. In Claude Code:
 
 ```
-try https://github.com/BlockRunAI/blockrun-agent-wallet
+try https://github.com/BlockRunAI/blockrun-agent-skill
 ```
 
 Or: `pip install blockrun-llm`

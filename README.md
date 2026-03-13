@@ -51,7 +51,7 @@
 In Claude Code, just say:
 
 ```
-try https://github.com/BlockRunAI/blockrun-agent-wallet
+try https://github.com/BlockRunAI/blockrun-agent-skill
 ```
 
 Claude will install it, create a USDC wallet, and show a QR code to fund. Done.
@@ -59,10 +59,10 @@ Claude will install it, create a USDC wallet, and show a QR code to fund. Done.
 <details>
 <summary>Other install methods</summary>
 
-- **Shell:** `curl -fsSL https://raw.githubusercontent.com/BlockRunAI/blockrun-agent-wallet/main/install.sh | bash`
+- **Shell:** `curl -fsSL https://raw.githubusercontent.com/BlockRunAI/blockrun-agent-skill/main/install.sh | bash`
 - **Solana:** `CHAIN=solana bash install.sh`
 - **MCP Server:** `claude mcp add blockrun -- npx @blockrun/mcp`
-- **Antigravity:** `git clone https://github.com/BlockRunAI/blockrun-agent-wallet ~/.gemini/antigravity/skills/blockrun`
+- **Antigravity:** `git clone https://github.com/BlockRunAI/blockrun-agent-skill ~/.gemini/antigravity/skills/blockrun`
 
 </details>
 

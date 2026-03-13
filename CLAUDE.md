@@ -1,4 +1,4 @@
-# BlockRun Agent Wallet
+# BlockRun Agent Skill
 
 ## When User Says "Try This" or "Install This"
 
@@ -19,14 +19,14 @@ CHAIN=solana bash install.sh   # Solana chain
 
 If running from a different directory:
 ```bash
-bash /path/to/blockrun-agent-wallet/install.sh
-CHAIN=solana bash /path/to/blockrun-agent-wallet/install.sh
+bash /path/to/blockrun-agent-skill/install.sh
+CHAIN=solana bash /path/to/blockrun-agent-skill/install.sh
 ```
 
 Or if not cloned yet:
 ```bash
-curl -fsSL https://raw.githubusercontent.com/BlockRunAI/blockrun-agent-wallet/main/install.sh | bash
-CHAIN=solana curl -fsSL https://raw.githubusercontent.com/BlockRunAI/blockrun-agent-wallet/main/install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/BlockRunAI/blockrun-agent-skill/main/install.sh | bash
+CHAIN=solana curl -fsSL https://raw.githubusercontent.com/BlockRunAI/blockrun-agent-skill/main/install.sh | bash
 ```
 
 Do NOT ask about MCP vs Skill. Do NOT manually clone. Just run install.sh.
