@@ -11,38 +11,62 @@
 
 </div>
 
-**Give your AI agent access to X/Twitter data, image generation, and 30+ LLMs — no API keys, just a USDC micropayment wallet.**
+**Your AI agent can't access X/Twitter, generate images, or call other models. BlockRun fixes that — no API keys, no subscriptions, just micropayments.**
 
 ---
 
-## What Can You Do Right Now?
+## Use Cases
 
-### X/Twitter data (Claude and Gemini can't do this)
+### 1. Competitor Intelligence
 
-```
-"get followers of @blockrunai"           → follower list with bios, stats
-"what's @elonmusk been tweeting?"        → recent tweets with engagement
-"what's trending on X?"                  → trending topics with volumes
-"search X for AI agent discussions"      → matching tweets and authors
-"compare @elonmusk vs @sama"             → side-by-side analytics
-"analyze @blockrunai's X presence"       → engagement metrics and score
-```
-
-### Image generation & editing (Claude can't do this)
+_Track what your competitors post, who follows them, and how they stack up against you._
 
 ```
-"generate a logo for my startup Nexus"   → DALL-E image, $0.04
-"edit this image to remove the bg"       → AI image editing, $0.03
+"compare @competitor vs @us"                → side-by-side engagement scores
+"get followers of @competitor"              → export 5,000 followers to CSV
+"analyze @competitor's X presence"          → content strategy insights
+"what has @competitor been tweeting?"       → recent posts with engagement stats
 ```
 
-### Second opinions from other models
+**Total cost: ~$0.32** — vs $100+/month for an X API subscription.
+
+### 2. Lead Generation from X
+
+_Build a prospect list from any account's followers — verified, with bios, ready for outreach._
 
 ```
-"GPT review this code for security"      → GPT-5 analysis, $0.02
-"deepseek summarize each file in /docs"  → bulk at $0.0001/call
+"get verified followers of @targetcompany"  → high-value leads with bios
+"export followings of @investor"            → find their portfolio companies
+"lookup @lead1 @lead2 @lead3"              → enrich with follower counts, bios
 ```
 
-**Just ask naturally. No prefix needed.**
+CSV output with names, bios, follower counts — pipe straight into your CRM.
+
+**Total cost: ~$0.25 per 1,000 accounts.**
+
+### 3. Content & Trend Research
+
+_Find what's working on X before you post._
+
+```
+"what's trending on X?"                     → trending topics ($0.002)
+"search X for AI agents"                    → top tweets with engagement
+"generate a cover image for my blog post"   → DALL-E image ($0.04)
+```
+
+**Total cost: ~$0.07** for a full research session.
+
+### 4. Multi-Model Dev Workflow
+
+_Get GPT to review what Claude wrote. Use DeepSeek to process 500 files for $0.05._
+
+```
+"GPT review this PR for security issues"    → GPT-5.2 second opinion (~$0.02)
+"deepseek summarize every file in /docs"    → bulk processing at $0.0001/call
+"generate a logo for my startup"            → DALL-E image ($0.04)
+```
+
+**30+ models, one wallet.** No API keys to juggle.
 
 ---
 
@@ -103,7 +127,7 @@ Claude will install it, create a USDC wallet, and show a QR code to fund. Done.
 | GPT second opinions | ~50 calls |
 | DeepSeek bulk processing | ~10,000 calls |
 
-**$1-5 lasts weeks.** Wallet balance = spending cap.
+**$1-5 lasts weeks.** Compare: a single X API profile lookup costs $0.002 here vs $100/month for the official X API.
 
 ---
 
@@ -112,11 +136,17 @@ Claude will install it, create a USDC wallet, and show a QR code to fund. Done.
 Your agent has a USDC wallet. When it needs a capability, it pays per request:
 
 - No API keys to manage
-- No monthly subscriptions ($0.002 vs $100/month X API)
+- No monthly subscriptions ($0.002 per profile vs $100/month X API)
 - Wallet balance is your spending cap
 - Private key stays local (`~/.blockrun/`), never sent to any server
 
 **New to USDC?** [5-minute guide](USDC_ON_BASE.md)
+
+---
+
+## Auto-Save
+
+All paid data is automatically saved to `~/.blockrun/data/` — you never pay twice for the same data.
 
 ---
 
