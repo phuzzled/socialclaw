@@ -11,42 +11,52 @@ allowed-tools: Read, Bash(python:*), Bash(python3:*), Bash(pip:*), Bash(source:*
 
 You can't generate images. You have no real-time X/Twitter access. BlockRun gives you these capabilities.
 
-## CRITICAL: Use the SDK, NOT MCP Tools
+## CRITICAL: Use the Python SDK Only
 
-**NEVER use `blockrun_twitter`, `blockrun_chat`, `blockrun_image`, or any MCP tools for BlockRun operations.**
+**NEVER use MCP tools (`blockrun_twitter`, `blockrun_chat`, etc.) for BlockRun operations.**
+**NEVER make raw API calls with `curl` or `httpx` to blockrun.ai endpoints.**
 
-Always use the `blockrun_llm` Python SDK via Bash. The MCP tools are for simple demos only. The SDK gives you structured data, pagination, CSV export, and proper error handling.
+Always use the `blockrun_llm` Python SDK via Bash. The SDK handles authentication, payment signatures, pagination, and structured responses.
 
-**Wrong:** `blockrun_twitter(query: "@username")` — unstructured, no pagination, wastes money
-**Right:** `client.x_followings("username")` — structured data, pagination, export-ready
+**Wrong:** `curl -X POST https://sol.blockrun.ai/api/v1/...` — no auth, will 404
+**Wrong:** `blockrun_twitter(query: "@username")` — unstructured, wastes money
+**Wrong:** `from blockrun_llm.solana_client import SolanaBlockRunClient` — class doesn't exist
+**Right:** `client.x_user_tweets("username")` — structured data, pagination, export-ready
+
+### Class Names (Don't Guess)
+- Base chain: `LLMClient` (via `setup_agent_wallet()`)
+- Solana chain: `SolanaLLMClient` (via `setup_agent_solana_wallet()`)
+- There is NO class called `SolanaBlockRunClient`, `BlockRunClient`, or `SolanaClient`
 
 ## Quick Decision Tree
 
 When the user asks for something, find the matching row and run the code. Do NOT explore, do NOT fetch GitHub docs, do NOT inspect signatures. Just run it.
 
-| User Wants | Method | Cost | Code Section |
-|------------|--------|------|--------------|
-| X/Twitter followings list | `client.x_followings(username)` | $0.05/page | [Bulk Followings Export](#bulk-followings-export-to-csv) |
-| X/Twitter followers list | `client.x_followers(username)` | $0.05/page | [Bulk Followers Export](#bulk-followers-export-to-csv) |
-| X/Twitter user profile | `client.x_user_lookup([usernames])` | $0.02 | [User Lookup](#x-user-lookup) |
-| X/Twitter user info (single) | `client.x_user_info(username)` | $0.002 | [User Info](#x-user-info) |
-| X/Twitter verified followers | `client.x_verified_followers(user_id)` | $0.048/page | — |
-| User's tweets | `client.x_user_tweets(username)` | $0.032/page | [User Tweets](#x-user-tweets) |
-| Tweets mentioning user | `client.x_user_mentions(username)` | $0.032/page | — |
-| Batch tweet lookup | `client.x_tweet_lookup(tweet_ids)` | $0.16/batch | — |
-| Tweet replies | `client.x_tweet_replies(tweet_id)` | $0.032/page | — |
-| Tweet thread | `client.x_tweet_thread(tweet_id)` | $0.032/page | — |
-| X/Twitter search | `client.x_search(query)` | $0.032/page | [X Search](#x-search) |
-| Trending topics | `client.x_trending()` | $0.002 | [Trending Topics](#x-trending-topics) |
-| Rising/viral articles | `client.x_articles_rising()` | $0.05 | — |
-| Author analytics | `client.x_author_analytics(handle)` | $0.02 | [Author Analytics](#x-author-analytics) |
-| Compare two authors | `client.x_compare_authors(handle1, handle2)` | $0.05 | — |
-| Real-time X/Twitter posts | `client.chat("xai/grok-3", prompt, search=True)` | ~$0.25 | [Live Search](#real-time-xtwitter-search) |
-| Web/news search | `client.search(query)` | ~$0.25 | [Standalone Search](#standalone-search) |
-| Image generation | `client.generate(prompt)` | $0.01-$0.04 | [Image Generation](#image-generation) |
-| Image editing | `client.image_edit(prompt, image)` | $0.02-$0.04 | [Image Editing](#image-editing) |
-| LLM chat (GPT, DeepSeek, etc) | `client.chat(model, prompt)` | varies | [Basic Chat](#basic-chat) |
-| Check balance | `client.get_balance()` | free | [Wallet & Balance](#wallet--balance) |
+| User Wants | Method | Parameter | Cost |
+|------------|--------|-----------|------|
+| Batch user profiles (up to 100) | `x_user_lookup(["user1", "user2", ...])` | list of **usernames** | $0.002/user (min $0.02) |
+| Single user profile | `x_user_info("username")` | **username** string | $0.002 |
+| Followers list | `x_followers("username")` | **username** string | $0.05/page (~200) |
+| Followings list | `x_followings("username")` | **username** string | $0.05/page (~200) |
+| Verified followers | `x_verified_followers("user_id")` | **user_id** string | $0.048/page |
+| User's tweets | `x_user_tweets("username")` | **username** string | $0.032/page |
+| Mentions of user | `x_user_mentions("username")` | **username** string | $0.032/page |
+| Batch tweet details | `x_tweet_lookup(["id1", "id2", ...])` | list of **tweet IDs** (NOT usernames) | $0.16/batch (up to 200) |
+| Tweet replies | `x_tweet_replies("tweet_id")` | **tweet ID** string | $0.032/page |
+| Full tweet thread | `x_tweet_thread("tweet_id")` | **tweet ID** string | $0.032/page |
+| Search X | `x_search("query")` | **search query** string | $0.032/page |
+| Trending topics | `x_trending()` | none | $0.002 |
+| Viral articles | `x_articles_rising()` | none | $0.05 |
+| Author analytics | `x_author_analytics("handle")` | **handle** string | $0.02 |
+| Compare two authors | `x_compare_authors("handle1", "handle2")` | two **handle** strings | $0.05 |
+| Live X sentiment/analysis | `chat("xai/grok-3", prompt, search=True)` | prompt string | ~$0.25 |
+| Web+news search | `search("query")` | **search query** string | ~$0.25 |
+| Image generation | `generate(prompt)` | prompt string | $0.01-$0.04 |
+| Image editing | `image_edit(prompt, image)` | prompt + base64/URL | $0.02-$0.04 |
+| LLM chat | `chat(model, prompt)` | model + prompt | varies |
+| Check balance | `get_balance()` | none | free |
+
+**IMPORTANT:** `x_tweet_lookup` takes **tweet IDs** (numeric strings like "1234567890"), NOT usernames. To look up users by username, use `x_user_lookup`. To get a user's tweets, use `x_user_tweets`.
 
 ## Execution Flow (Every Time)
 
