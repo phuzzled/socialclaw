@@ -410,7 +410,25 @@ You have a wallet. When you need a capability you lack, you pay for it autonomou
 | Second opinion | GPT-5.2 | $1.75/M input, $14/M output |
 | Cheaper processing | DeepSeek | $0.28/M input, $0.42/M output |
 
-**How it works:** BlockRun uses x402 micropayments to route your requests to OpenAI, xAI, Google, AttentionVC, and other providers. No API keys needed - your wallet pays per request.
+## How x402 Payments Work (You Don't Need to Do Anything)
+
+The SDK handles payments automatically. You never sign transactions, manage nonces, or construct payment headers. Here's what happens under the hood when you call any SDK method:
+
+```
+1. SDK sends request to blockrun.ai
+2. Server returns 402 Payment Required + payment details
+3. SDK locally signs an EIP-712 message (Base) or SPL transfer (Solana)
+   — your private key NEVER leaves your machine
+4. SDK retries with the signed payment header
+5. Server verifies signature, routes to provider (OpenAI, xAI, etc.)
+6. Response returned to you
+```
+
+**This is fully automatic.** Every `client.chat()`, `client.x_followers()`, `client.search()`, etc. does this internally. You just call the method and get results.
+
+**Security:** The wallet's private key (`~/.blockrun/.session`) is used only for local cryptographic signing. It is never transmitted to any server. This is equivalent to signing a MetaMask transaction.
+
+**No API keys needed.** The x402 payment signature IS the authentication. No OpenAI key, no X API key, no Grok key. The wallet pays per request, and BlockRun routes to the right provider.
 
 **Chains supported:** Base (default via `LLMClient`) and Solana (via `SolanaLLMClient` — `pip install blockrun-llm[solana]`). All endpoints work on both chains.
 
