@@ -38,9 +38,9 @@ fi
 
 # Install SDK with fallbacks for different Python setups
 if [ "$CHAIN" = "solana" ]; then
-    PKG="blockrun-llm[solana]"
+    PKG="blockrun-llm[solana]>=0.7.0"
 else
-    PKG="blockrun-llm"
+    PKG="blockrun-llm>=0.7.0"
 fi
 echo "Installing Python SDK ($PKG)..."
 if pip install --upgrade "$PKG" >/dev/null 2>&1; then
@@ -91,16 +91,24 @@ import sys
 chain = sys.argv[1] if len(sys.argv) > 1 else "base"
 
 if chain == "solana":
-    from blockrun_llm import setup_agent_solana_wallet
-    from blockrun_llm.solana_wallet import save_solana_wallet_qr
-    client = setup_agent_solana_wallet(silent=True)
-    addr = client.get_wallet_address()
-    from blockrun_llm import get_solana_usdc_balance
-    balance = get_solana_usdc_balance(addr)
-    save_solana_wallet_qr(addr)
-    qr_file = "solana_qr.png"
-    chain_label = "Solana"
-    fund_msg = "Fund wallet: Send USDC on Solana to the address above"
+    try:
+        from blockrun_llm import setup_agent_solana_wallet
+        from blockrun_llm.solana_wallet import save_solana_wallet_qr
+        client = setup_agent_solana_wallet(silent=True)
+        addr = client.get_wallet_address()
+        from blockrun_llm import get_solana_usdc_balance
+        balance = get_solana_usdc_balance(addr)
+        save_solana_wallet_qr(addr)
+        qr_file = "solana_qr.png"
+        chain_label = "Solana"
+        fund_msg = "Fund wallet: Send USDC on Solana to the address above"
+    except ImportError as e:
+        import blockrun_llm
+        v = getattr(blockrun_llm, '__version__', 'unknown')
+        print(f'\nERROR: Solana wallet requires blockrun-llm >= 0.7.0 (installed: {v})')
+        print(f'Import error: {e}')
+        print('Fix: pip install --upgrade --no-cache-dir "blockrun-llm[solana]>=0.7.0"')
+        sys.exit(1)
 else:
     from blockrun_llm import setup_agent_wallet, save_wallet_qr
     client = setup_agent_wallet(silent=True)
