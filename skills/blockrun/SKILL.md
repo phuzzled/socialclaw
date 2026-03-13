@@ -48,6 +48,15 @@ Users may paste URLs like `https://sol.blockrun.ai/api/v1/partner/attentionvc/tw
 | `/x/compare` | `client.x_compare_authors("h1", "h2")` |
 | `/chat/completions` | `client.chat("model", "prompt")` |
 
+### If blockrun_llm Is Not Installed
+
+The SDK comes from **PyPI**, not from local source code. If you get `ModuleNotFoundError`, just run:
+```bash
+pip install --no-cache-dir "blockrun-llm>=0.7.2"
+# For Solana: pip install --no-cache-dir "blockrun-llm[solana]>=0.7.2"
+```
+Do NOT search for local source code. Do NOT clone repos. Do NOT look in `/Users/*/Documents/`. Just pip install.
+
 ### Class Names (Don't Guess)
 - Base chain: `LLMClient` (via `setup_agent_wallet()`)
 - Solana chain: `SolanaLLMClient` (via `setup_agent_solana_wallet()`)
@@ -866,8 +875,15 @@ Options:
 response = client.chat("xai/grok-3", "What's trending?", search=True)
 ```
 
-**Module not found**
--> Install the SDK: `pip install blockrun-llm`
+**ModuleNotFoundError: No module named 'blockrun_llm'**
+The SDK is not installed in your current Python environment. Install it from PyPI:
+```bash
+pip install --no-cache-dir "blockrun-llm>=0.7.2"
+# For Solana support:
+pip install --no-cache-dir "blockrun-llm[solana]>=0.7.2"
+```
+This happens when install.sh installed to a different Python than you're using.
+Do NOT look for local source code. Do NOT clone the repo. Just `pip install` from PyPI.
 
 ## Error Handling Pattern
 

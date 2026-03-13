@@ -36,89 +36,62 @@ else
     cd "$SKILLS_DIR" && git pull --ff-only --quiet
 fi
 
-# Install SDK — use python3 -m pip (works in venvs and system python)
+# Install SDK from PyPI (--no-cache-dir ensures latest version)
 if [ "$CHAIN" = "solana" ]; then
     PKG="blockrun-llm[solana]>=0.7.2"
 else
     PKG="blockrun-llm>=0.7.2"
 fi
-echo "Installing Python SDK ($PKG)..."
-if python3 -m pip install --upgrade "$PKG" 2>&1 | tail -1; then
-    :
-elif python3 -m pip install --user --upgrade "$PKG" 2>&1 | tail -1; then
-    :
-elif pip install --upgrade "$PKG" 2>&1 | tail -1; then
-    :
-elif python3 -m pip install --break-system-packages --upgrade "$PKG" 2>&1 | tail -1; then
-    :
-else
-    echo "ERROR: Could not install $PKG. Please install manually:"
-    echo "  pip install \"$PKG\""
-    exit 1
-fi
-
-# Verify the package is importable by the SAME python3
-if ! python3 -c "import blockrun_llm" 2>/dev/null; then
-    echo "WARNING: blockrun-llm installed but not importable by python3."
-    echo "If you're using a virtual environment, activate it and run:"
-    echo "  pip install \"$PKG\""
-fi
-
-# Install CLI to ~/.local/bin
-echo "Installing CLI..."
-mkdir -p "$HOME/.local/bin"
-cp "$SKILLS_DIR/bin/blockrun" "$HOME/.local/bin/blockrun"
-chmod +x "$HOME/.local/bin/blockrun"
-
-# Check if ~/.local/bin is in PATH
-if [[ ":$PATH:" != *":$HOME/.local/bin:"* ]]; then
-    echo "Adding ~/.local/bin to PATH..."
-    # Add to shell config
-    if [ -f "$HOME/.zshrc" ]; then
-        echo 'export PATH="$HOME/.local/bin:$PATH"' >> "$HOME/.zshrc"
-    elif [ -f "$HOME/.bashrc" ]; then
-        echo 'export PATH="$HOME/.local/bin:$PATH"' >> "$HOME/.bashrc"
+echo "Installing Python SDK ($PKG) from PyPI..."
+INSTALLED=false
+for cmd in \
+    "python3 -m pip install --no-cache-dir --upgrade \"$PKG\"" \
+    "pip install --no-cache-dir --upgrade \"$PKG\"" \
+    "python3 -m pip install --no-cache-dir --user --upgrade \"$PKG\"" \
+    "python3 -m pip install --no-cache-dir --break-system-packages --upgrade \"$PKG\""; do
+    if eval "$cmd" 2>&1 | tail -1; then
+        INSTALLED=true
+        break
     fi
-    # Also export for current session
-    export PATH="$HOME/.local/bin:$PATH"
+done
+
+if [ "$INSTALLED" = false ]; then
+    echo "ERROR: Could not install $PKG"
+    echo "Run manually: pip install --no-cache-dir \"$PKG\""
+    exit 1
 fi
 
 # Save chain preference
 mkdir -p "$HOME/.blockrun"
 echo "$CHAIN" > "$HOME/.blockrun/.chain"
 
-# Verify installation and show status
-echo "Verifying..."
-python3 - "$CHAIN" <<'PYEOF'
+# Verify the package is importable
+if python3 -c "import blockrun_llm; print(f'SDK v{blockrun_llm.__version__} installed')" 2>/dev/null; then
+    # Run full verification
+    python3 - "$CHAIN" <<'PYEOF'
 import sys
 chain = sys.argv[1] if len(sys.argv) > 1 else "base"
 
 if chain == "solana":
     try:
         from blockrun_llm import setup_agent_solana_wallet
-        from blockrun_llm.solana_wallet import save_solana_wallet_qr
         client = setup_agent_solana_wallet(silent=True)
         addr = client.get_wallet_address()
-        from blockrun_llm import get_solana_usdc_balance
-        balance = get_solana_usdc_balance(addr)
-        save_solana_wallet_qr(addr)
-        qr_file = "solana_qr.png"
+        balance = client.get_balance()
         chain_label = "Solana"
         fund_msg = "Fund wallet: Send USDC on Solana to the address above"
     except ImportError as e:
         import blockrun_llm
         v = getattr(blockrun_llm, '__version__', 'unknown')
-        print(f'\nERROR: Solana wallet requires blockrun-llm >= 0.7.0 (installed: {v})')
+        print(f'\nERROR: Solana extras missing (installed: v{v})')
         print(f'Import error: {e}')
-        print('Fix: pip install --upgrade --no-cache-dir "blockrun-llm[solana]>=0.7.2"')
+        print('Fix: pip install --no-cache-dir "blockrun-llm[solana]>=0.7.2"')
         sys.exit(1)
 else:
-    from blockrun_llm import setup_agent_wallet, save_wallet_qr
+    from blockrun_llm import setup_agent_wallet
     client = setup_agent_wallet(silent=True)
     addr = client.get_wallet_address()
     balance = client.get_balance()
-    save_wallet_qr(addr)
-    qr_file = "qr.png"
     chain_label = "Base"
     fund_msg = "Fund wallet: Send USDC on Base to the address above"
 
@@ -126,21 +99,22 @@ print()
 print(f'BlockRun installed! (Chain: {chain_label})')
 print(f'Wallet: {addr}')
 print(f'Balance: ${balance:.2f} USDC')
-print()
-print('Your agent can now:')
-print('  Generate images      - "generate a logo for my startup"')
-print('  Access X/Twitter     - "get followers of @blockrunai"')
-print('  Edit images          - "edit this image to make the sky purple"')
-print('  Search the web       - "search latest AI news"')
-print('  Get second opinions  - "GPT review this code"')
-print()
-print('Just ask Claude naturally. No "blockrun" prefix needed.')
 if balance == 0:
     print()
     print(fund_msg)
 print()
-print(f'To switch chains: echo "solana" > ~/.blockrun/.chain  (or "base")')
+print('Try: "What\'s trending on X?" or "Generate a logo for my project"')
 sys.stdout.flush()
 PYEOF
-
-# QR codes saved to ~/.blockrun/ — user can open manually if needed
+else
+    # Package installed to a different python than python3 — tell user how to fix
+    echo ""
+    echo "BlockRun skill cloned and chain preference saved."
+    echo ""
+    echo "NOTE: blockrun-llm was installed but your current python3 can't find it."
+    echo "This usually means you're using a virtual environment."
+    echo "Run this in your active environment:"
+    echo ""
+    echo "  pip install --no-cache-dir \"$PKG\""
+    echo ""
+fi
