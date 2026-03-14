@@ -4,11 +4,10 @@
 
 <img src="assets/banner.png" alt="SocialClaw" width="600" />
 
-<h1>Intelligence-as-a-function</h1>
+<h3>Stop guessing what to post. Let your agent tell you.</h3>
 
-<p><strong>The first X/Twitter analytics an agent can call.</strong><br>
-One function call = one intelligence report. $0.08, not $49/month.<br>
-No dashboard. No login. No subscription. Because agents don't need UI.</p>
+<p>SocialClaw gives your AI agent real-time X/Twitter intelligence.<br>
+One command → structured data → your agent acts on it. $0.08 per report.</p>
 
 <br />
 
@@ -17,47 +16,15 @@ No dashboard. No login. No subscription. Because agents don't need UI.</p>
 [![Gemini CLI](https://img.shields.io/badge/Gemini_CLI-Compatible-4285F4.svg)](https://github.com/google-gemini/gemini-cli)
 [![Cursor](https://img.shields.io/badge/Cursor-Compatible-000000.svg)](https://cursor.com)
 
-[How It's Different](#how-its-different) · [Workflows](#workflows) · [Get Started](#get-started) · [Pricing](docs/pricing.md)
+[What Can I Do?](#what-can-i-do) · [Get Started](#get-started) · [Pricing](docs/pricing.md) · [API Reference](docs/api-reference.md)
 
 </div>
 
 ---
 
-## How It's Different
+## What Can I Do?
 
-TweetHunter, Typefully, Hypefury — they're all **dashboards for humans**. $49-99/month for a UI you log into.
-
-SocialClaw is none of that.
-
-| | Traditional Tools | SocialClaw |
-|---|---|---|
-| **Interface** | Dashboard (human logs in) | Function call (agent calls it) |
-| **Pricing** | $49-99/month subscription | $0.08 per report |
-| **Auth** | Email + password | USDC wallet signature |
-| **Output** | Charts you read | JSON your agent processes |
-| **Workflow** | Human reads → decides → acts | Agent calls → gets data → acts |
-
-**The flow:**
-
-```
-agent calls socialclaw → gets trend data → writes tweet → posts
-```
-
-No dashboard. No login. No subscription. Intelligence-as-a-function.
-
----
-
-## Workflows
-
-### `insight @username` — Deep-dive account analysis
-
-```bash
-socialclaw insight @targetaccount
-```
-
-Who follows them, who mentions them, what content works. Your agent gets structured intelligence, not a pretty chart.
-
-### `radar <topic>` — What's trending right now
+### Find out what to post right now
 
 ```bash
 socialclaw radar "AI agents"
@@ -65,14 +32,69 @@ socialclaw radar "AI agents"
 
 ```
 TRENDING NOW
-  Anthropic          158 articles   115,983,616 views
+  Anthropic          158 articles   115,983,616 views  <--
   Claude Code         29 articles    44,825,583 views
   Bitcoin             34 articles    27,136,645 views
+
+LATEST TWEETS (42 found)
+  @buildonsol     892 likes  "AI agents are about to change how we..."
+    https://x.com/buildonsol/status/1234567890
+
+SUGGESTED: Post your take on "Anthropic" — 115M views and climbing.
 ```
 
-Real view counts, not vanity metrics. Your agent reads this and knows what to post about.
+Your agent sees real view counts, finds the wave, and tells you exactly what to post about. No more scrolling Twitter for 45 minutes hoping for inspiration.
 
-### `scout <topic>` — Find the right people
+---
+
+### Know who to engage with
+
+```bash
+socialclaw hitlist "Solana DeFi"
+```
+
+```
+@solana_daily (45K followers) — 89 likes, climbing
+  "Solana Projects to Watch this Week"
+  https://x.com/solana_daily/status/123456789
+  → Reply with specific data. Numbers get retweeted.
+
+@DefiIgnas (240K followers) — 312 likes
+  "Unpopular opinion: most AI agent tokens are..."
+  https://x.com/DefiIgnas/status/987654321
+  → Counter with your build story. Builders > speculators.
+```
+
+15 minutes replying to these 5 conversations > 1 hour writing a standalone tweet nobody sees. Your agent finds the high-leverage conversations for you.
+
+---
+
+### Understand any account in 10 seconds
+
+```bash
+socialclaw insight @jessepollak
+```
+
+```
+PROFILE
+  Followers:     347,004
+  F/F Ratio:     72.3x (creator, not consumer)
+  Verified:      Yes
+
+TOP FOLLOWERS
+  @coinbase           4,200,000 followers
+  @brian_armstrong     1,800,000 followers
+
+MENTION ENGAGEMENT
+  Avg likes/mention:    23.4
+  Total reach:          4,892
+```
+
+Before you DM someone, pitch them, or reply to their thread — know their actual influence, who follows them, and whether engaging with them is worth your time.
+
+---
+
+### Find the right people in any niche
 
 ```bash
 socialclaw scout "x402 crypto"
@@ -85,69 +107,110 @@ TOP VOICES
   @coinaborsh          45,190 followers — ecosystem builder
 ```
 
-### `audience @account` — Follower analysis by influence tier
+Building a product? Find the 10 people who actually matter in your space. Your agent identifies them by real engagement, not follower count.
 
-```bash
-socialclaw audience @targetaccount
-```
+---
 
-```
-MEGA (100K+):   @alloxdotai (131K), @AprilCumberland (60K)
-MACRO (10K-100K):  8 accounts
-MICRO (1K-10K):  15 accounts
-```
-
-### `compare @user1 @user2` — Side-by-side competitor analysis
+### Compare yourself against competitors
 
 ```bash
 socialclaw compare @you @competitor
 ```
 
-### `hitlist <topic>` — High-engagement conversations to join
+```
+METRIC               @you              @competitor
+Followers             12,400              8,900
+Mention likes          1,892              3,410
+Avg likes/mention       12.3               28.4
 
-```bash
-socialclaw hitlist "AI agents crypto"
+QUICK TAKE: @competitor gets 2.3x more mention engagement despite fewer followers.
+Their audience is more active. Study their reply strategy.
 ```
 
-```
-@solana_daily (45K followers) — 15 likes, climbing
-  "Solana Projects to Watch this Week"
-  https://x.com/solana_daily/status/123456789
-  → Reply with specific data. Numbers get retweeted.
-```
+Stop wondering if you're winning. Know exactly where you stand and what to fix.
 
-### `brief @handle` — Morning mentions and alerts
+---
+
+### Get your morning brief
 
 ```bash
 socialclaw brief @yourhandle
 ```
 
-> "@HarryKamaAI (196K followers) just mentioned you. 3 new mentions overnight."
->
-> Reply within 30 minutes. Speed = visibility.
+```
+3 new mentions overnight
+  @HarryKamaAI (196K followers) mentioned you — reply within 30 minutes
+  @defi_whale (45K) quote-tweeted your thread
+
+TRENDING: "AI infrastructure" is spiking (28M views)
+
+SUGGESTED ACTIONS:
+  1. Reply to @HarryKamaAI (high-value mention, big audience)
+  2. Post about AI infrastructure — ride the trend
+  3. Thank @defi_whale for the QT — builds relationship
+```
+
+Wake up knowing exactly what happened and what to do first. Your agent monitors while you sleep.
+
+---
+
+### Look up any tweet or thread
+
+```bash
+socialclaw tweet https://x.com/elonmusk/status/1234567890
+socialclaw thread https://x.com/VitalikButerin/status/9876543210
+```
+
+Get full tweet data, engagement metrics, replies, and complete threads — all structured, all actionable.
+
+---
+
+### Deep analytics on any creator
+
+```bash
+socialclaw analytics @VitalikButerin
+```
+
+Posting patterns, audience composition, engagement trajectory, content performance by topic. Everything you need to understand what makes an account grow.
 
 ---
 
 ## Get Started
 
-**Claude Code:**
+**Claude Code** (one command):
 ```
 try https://github.com/BlockRunAI/socialclaw
 ```
 
-**Codex / Cursor / any agent:**
-```bash
-pip install blockrun-llm[solana]
-```
-
-**CLI:**
+**Any agent / CLI**:
 ```bash
 git clone https://github.com/BlockRunAI/socialclaw && cd socialclaw
-pip install blockrun-llm[solana]
-python scripts/socialclaw.py radar "your topic"
+bash install.sh                # Base chain (default)
+CHAIN=solana bash install.sh   # Solana chain
 ```
 
-Wallet auto-detected. Base or Solana USDC. No config needed.
+**Python SDK only**:
+```bash
+pip install blockrun-llm            # Base
+pip install blockrun-llm[solana]    # Solana
+```
+
+Wallet auto-detected from `~/.*/*wallet*.json`. Fund with USDC. No API keys, no config, no signup.
+
+---
+
+## Why $0.08 beats $49/month
+
+|  | Dashboard tools | SocialClaw |
+|---|---|---|
+| **You pay** | $49-99/month whether you use it or not | $0.08 per report, only when you need it |
+| **You get** | Charts you read with your eyes | JSON your agent processes instantly |
+| **You do** | Log in, click around, screenshot results | One function call, structured output |
+| **Your agent can use it** | No (human-only UI) | Yes (that's the whole point) |
+| **10 reports/day for a month** | $49/month | $24/month (and you keep the data) |
+| **1 report this week** | Still $49/month | $0.08 total |
+
+Every paid response is saved as JSON in `~/.blockrun/data/`. You paid for it — you keep it forever.
 
 ---
 
@@ -155,39 +218,44 @@ Wallet auto-detected. Base or Solana USDC. No config needed.
 
 | Platform | How |
 |----------|-----|
-| **Claude Code** | Loads as a skill. "Run socialclaw insight on @user". |
+| **Claude Code** | Installs as a skill. Say "analyze @elonmusk on Twitter". |
 | **OpenAI Codex** | `pip install blockrun-llm[solana]` in sandbox. |
-| **Gemini CLI** | Clone to `~/.gemini/antigravity/skills/socialclaw`. |
+| **Gemini CLI** | Auto-installs to `~/.gemini/antigravity/skills/socialclaw`. |
 | **Cursor / Windsurf** | Agent reads CLAUDE.md, calls SDK via terminal. |
 | **Any terminal** | `python scripts/socialclaw.py radar "topic"` |
 | **Your own agent** | `from blockrun_llm import SolanaLLMClient` |
 
 ---
 
-## How It Works
+## All Commands
 
-- **No API keys.** Your USDC wallet IS your authentication.
-- **No subscriptions.** ~$0.08 per report. $1 = ~12 reports.
-- **Private key stays local.** Only signatures are sent.
-- **Data is yours.** Every response saved as JSON in `~/.blockrun/data/`.
-
-[Pricing details](docs/pricing.md) · [API Reference](docs/api-reference.md)
+| Command | What you get | Cost |
+|---------|-------------|------|
+| `insight @handle` | Full account analysis: profile, followers, mentions, tweets | ~$0.08 |
+| `radar <topic>` | Trending topics + latest tweets + rising articles | ~$0.07 |
+| `search <query>` | Search X with structured results + top tweets | ~$0.06 |
+| `compare @a @b` | Side-by-side account comparison | ~$0.15 |
+| `scout <topic>` | Find top voices in any niche | ~$0.07 |
+| `hitlist <topic>` | High-engagement conversations to reply to | ~$0.03 |
+| `audience @handle` | Follower segmentation by influence tier | ~$0.15 |
+| `brief @handle` | Morning brief: mentions, trends, action items | ~$0.08 |
+| `analytics @handle` | Deep author intelligence report | ~$0.02 |
+| `tweet <id/url>` | Look up specific tweet + replies | ~$0.16 |
+| `thread <id/url>` | Get full tweet thread | ~$0.03 |
+| `engage @handle` | Find mentions + AI-generated reply drafts | ~$0.10 |
+| `check @handle` | Verify posted tweets + engagement metrics | ~$0.05 |
 
 ---
 
-## Growth Playbook
+## How It Works
 
-These are the plays that get results:
+- **No API keys.** Your USDC wallet IS your authentication (x402 protocol).
+- **No subscriptions.** Pay per call. $1 = ~12 full reports.
+- **Private key stays local.** Only signatures are sent over the wire.
+- **Base or Solana.** Your choice. Same SDK, same endpoints.
+- **Data is yours.** Every response saved to `~/.blockrun/data/`.
 
-**Ride the wave** — `radar` shows you what's trending with real view counts. Post your angle on the #1 trend within 2 hours.
-
-**Activate your big followers** — `audience` segments followers by influence. One retweet from a 100K account > 100 of your own tweets.
-
-**Join the right conversations** — `hitlist` finds high-engagement threads. 15 minutes replying to top 5 conversations > 1 standalone tweet.
-
-**Build relationships** — `scout` finds KOLs in your space. Pick 5, engage consistently for 2 weeks. One RT from a 50K = a month of solo posting.
-
-**Study what works** — `insight` shows what content gets numbers. Don't guess, measure.
+[Full API Reference](docs/api-reference.md) · [Pricing details](docs/pricing.md)
 
 ---
 
@@ -197,20 +265,20 @@ These are the plays that get results:
 <tr>
 <td width="50%">
 
-### 🦞 SocialClaw
-**Intelligence-as-a-function for X/Twitter**
+### SocialClaw
+**X/Twitter intelligence for your agent**
 
-You're here. The first X analytics an agent can call. $0.08 per report, no dashboard, no subscription.
+You're here. One function call = one intelligence report. $0.08, not $49/month.
 
 `pip install blockrun-llm[solana]`
 
 </td>
 <td width="50%">
 
-### ⚡ [ClawRouter](https://github.com/BlockRunAI/ClawRouter)
-**The LLM router built for autonomous agents**
+### [ClawRouter](https://github.com/BlockRunAI/ClawRouter)
+**LLM router for autonomous agents**
 
-41+ models, local smart routing, x402 USDC payments — the only stack that lets agents operate independently.
+41+ models, smart routing, x402 USDC payments. Your agent picks the best model at the best price automatically.
 
 `curl -fsSL https://blockrun.ai/ClawRouter-update | bash`
 
@@ -220,7 +288,7 @@ You're here. The first X analytics an agent can call. $0.08 per report, no dashb
 </tr>
 </table>
 
-> **SocialClaw + ClawRouter together:** SocialClaw pulls X/Twitter intelligence. ClawRouter routes your LLM requests to the cheapest capable model. Same wallet, same payment layer, two agent superpowers.
+> **Together:** SocialClaw pulls the intelligence. ClawRouter routes your LLM calls. Same wallet, same payment layer. Your agent's full stack.
 
 ---
 
