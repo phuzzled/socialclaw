@@ -4,7 +4,7 @@
 
 <img src="assets/banner.png" alt="SocialClaw" width="600" />
 
-<h3>Grow your X/Twitter to 1M+ views with AI-powered intelligence</h3>
+<h3>Grow your X/Twitter to 5M+ views in 3 months with AI-powered intelligence</h3>
 
 <p>Real-time trend detection, audience insights, engagement optimization, and content strategy — powered by your AI agent. No API keys needed.</p>
 
