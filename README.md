@@ -4,9 +4,11 @@
 
 <img src="assets/banner.png" alt="SocialClaw" width="600" />
 
-<h3>Grow your X/Twitter to 5M+ views in 3 months with AI-powered intelligence</h3>
+<h1>Intelligence-as-a-function</h1>
 
-<p>Real-time trend detection, audience insights, engagement optimization, and content strategy — powered by your AI agent. No API keys needed.</p>
+<p><strong>The first X/Twitter analytics an agent can call.</strong><br>
+One function call = one intelligence report. $0.08, not $49/month.<br>
+No dashboard. No login. No subscription. Because agents don't need UI.</p>
 
 <br />
 
@@ -15,187 +17,114 @@
 [![Gemini CLI](https://img.shields.io/badge/Gemini_CLI-Compatible-4285F4.svg)](https://github.com/google-gemini/gemini-cli)
 [![Cursor](https://img.shields.io/badge/Cursor-Compatible-000000.svg)](https://cursor.com)
 
-[Daily Routine](#your-daily-growth-routine) · [Playbooks](#growth-playbooks) · [Get Started](#get-started) · [Pricing](docs/pricing.md)
+[How It's Different](#how-its-different) · [Workflows](#workflows) · [Get Started](#get-started) · [Pricing](docs/pricing.md)
 
 </div>
 
 ---
 
-## Your Daily Growth Routine
+## How It's Different
 
-Three commands. Every day. That's it.
+TweetHunter, Typefully, Hypefury — they're all **dashboards for humans**. $49-99/month for a UI you log into.
 
-**Morning — see who's talking about you, reply immediately:**
-```
-socialclaw brief @yourhandle
-```
-> _"@HarryKamaAI (196K followers) just mentioned you. @solana_daily listed you as Project to Watch. 3 new mentions overnight."_
->
-> Reply within 30 minutes. Speed = visibility.
+SocialClaw is none of that.
 
-**Before you post — see what has momentum right now:**
-```
-socialclaw radar "your topic"
-```
-> _"Anthropic is at 115M views today. Claude Code has 44M. Bitcoin at 27M."_
->
-> Post your angle on the #1 trend within 2 hours of it spiking. That's how you ride 100M+ view waves.
+| | Traditional Tools | SocialClaw |
+|---|---|---|
+| **Interface** | Dashboard (human logs in) | Function call (agent calls it) |
+| **Pricing** | $49-99/month subscription | $0.08 per report |
+| **Auth** | Email + password | USDC wallet signature |
+| **Output** | Charts you read | JSON your agent processes |
+| **Workflow** | Human reads → decides → acts | Agent calls → gets data → acts |
 
-**Weekly — discover new people to connect with:**
+**The flow:**
+
 ```
-socialclaw scout "x402 crypto"
+agent calls socialclaw → gets trend data → writes tweet → posts
 ```
-> _"Top voices: @jessepollak (347K), @BuildOnBase (89K), @coinaborsh (45K)..."_
->
-> Pick 5 accounts. Engage consistently for 2 weeks. One retweet from a 50K account = more reach than a month of solo posting.
+
+No dashboard. No login. No subscription. Intelligence-as-a-function.
 
 ---
 
-## Real Example: Growing a Startup's X Presence
+## Workflows
 
-We ran SocialClaw on a startup account with ~3K followers. Here's the playbook it generated:
+### `insight @username` — Deep-dive account analysis
 
-### 3 things to do right now
-
-**1. Activate your biggest followers**
-
-SocialClaw scans your follower list and ranks by influence. Typical output:
-
-```
-  TOP FOLLOWERS
-    @mega_influencer         196,829 followers
-    @vc_partner               83,120 followers
-    @ecosystem_builder        55,190 followers
-    @community_lead           16,822 followers  ← DM'd you, reply!
-    @early_supporter          11,662 followers  ← publicly praised you, reply with update
+```bash
+socialclaw insight @targetaccount
 ```
 
-> One retweet from a 100K+ account = more impressions than 100 of your own tweets. Engage with these people first.
+Who follows them, who mentions them, what content works. Your agent gets structured intelligence, not a pretty chart.
 
-**2. Ride today's trending wave**
+### `radar <topic>` — What's trending right now
 
-SocialClaw pulls real-time trending data with actual view counts:
-
-```
-  TRENDING NOW
-    Anthropic          158 articles   115,983,616 views
-    Claude Code         29 articles    44,825,583 views
-    Bitcoin             34 articles    27,136,645 views
-```
-
-> Find the trend that overlaps with what you're building. Post your angle within 2 hours. That's how you ride a 100M+ view wave.
-
-**3. Join the conversations that matter**
-
-SocialClaw finds high-engagement conversations in your space with direct links:
-
-```
-  @major_account (45K followers) — 15 likes, climbing
-    "Projects to Watch this Week: @yourproject..."
-    https://x.com/major_account/status/123456789
-    → Reply with specific data. "We just shipped X — 7 features, Y metric." Numbers get retweeted.
-```
-
-> "We shipped X with Y result" > "Great list!" Every time.
-
-### Your weekly growth routine
-
-| Day | Action | Tool |
-|-----|--------|------|
-| Every morning | Check mentions, reply fast | `socialclaw brief @yourhandle` |
-| Before posting | Find trending angle | `socialclaw radar "your niche"` |
-| Mon & Thu | Discover new KOLs to engage | `socialclaw scout "your topic"` |
-| Wednesday | Study a bigger account in your space | `socialclaw insight @targetaccount` |
-| Friday | Benchmark your growth | `socialclaw compare @you @similaraccount` |
-
----
-
-## Growth Playbooks
-
-### Get your first 1M impression week
-
-The accounts hitting 1M+ views aren't posting better content — they're posting the right content at the right time.
-
-```
+```bash
 socialclaw radar "AI agents"
 ```
 
-SocialClaw shows trending topics with **real view counts** (not vanity metrics):
-
 ```
+TRENDING NOW
   Anthropic          158 articles   115,983,616 views
-  OpenAI              48 articles    51,378,182 views
   Claude Code         29 articles    44,825,583 views
+  Bitcoin             34 articles    27,136,645 views
 ```
 
-**The play:** Post your take on the #1 trend within 2 hours. SocialClaw catches the spike. You ride the wave.
+Real view counts, not vanity metrics. Your agent reads this and knows what to post about.
 
----
+### `scout <topic>` — Find the right people
 
-### Build a high-value audience
-
-10K followers who are all bots = worthless. 500 followers where 20 have 50K+ = a distribution machine.
+```bash
+socialclaw scout "x402 crypto"
+```
 
 ```
+TOP VOICES
+  @jessepollak        347,004 followers — @base builder #001
+  @BuildOnBase         89,200 followers — Official Base account
+  @coinaborsh          45,190 followers — ecosystem builder
+```
+
+### `audience @account` — Follower analysis by influence tier
+
+```bash
 socialclaw audience @targetaccount
 ```
 
-SocialClaw segments followers by influence tier:
-
 ```
-  MEGA (100K+):  @alloxdotai (131K), @AprilCumberland (60K)
-  MACRO (10K-100K):  8 accounts
-  MICRO (1K-10K):  15 accounts
+MEGA (100K+):   @alloxdotai (131K), @AprilCumberland (60K)
+MACRO (10K-100K):  8 accounts
+MICRO (1K-10K):  15 accounts
 ```
 
-**The play:** Study what Mega followers care about. Create content for THEM. When a 100K account likes your post, their followers see it.
+### `compare @user1 @user2` — Side-by-side competitor analysis
 
----
-
-### 10x your engagement rate
-
-Stop posting into the void. Show up in conversations that are already getting traction.
-
+```bash
+socialclaw compare @you @competitor
 ```
+
+### `hitlist <topic>` — High-engagement conversations to join
+
+```bash
 socialclaw hitlist "AI agents crypto"
 ```
 
 ```
-  @solana_daily (45K followers) — 15 likes, climbing
-    "Solana Projects to Watch this Week"
-    → Jump in with a specific data point
+@solana_daily (45K followers) — 15 likes, climbing
+  "Solana Projects to Watch this Week"
+  https://x.com/solana_daily/status/123456789
+  → Reply with specific data. Numbers get retweeted.
 ```
 
-**The play:** 15 minutes replying to top 5 conversations > 1 standalone tweet to your followers.
+### `brief @handle` — Morning mentions and alerts
 
----
-
-### Find the right people to connect with
-
-Growth on X is relationships, not broadcasting.
-
-```
-socialclaw scout "base blockchain"
+```bash
+socialclaw brief @yourhandle
 ```
 
-```
-  @jessepollak        347,004 followers — @base builder #001
-  @BuildOnBase         89,200 followers — Official Base account
-```
-
-**The play:** Pick 5 accounts. Engage consistently for 2 weeks. Not spam — genuine replies. One RT from a 50K = a month of solo posting.
-
----
-
-### Study what content actually works
-
-Don't guess. See what gets numbers.
-
-```
-socialclaw insight @topaccount
-```
-
-Look at: Which mentions come from big accounts? What's their F/F ratio? Who are their most influential followers — that's who they're really creating content for.
+> "@HarryKamaAI (196K followers) just mentioned you. 3 new mentions overnight."
+>
+> Reply within 30 minutes. Speed = visibility.
 
 ---
 
@@ -246,6 +175,22 @@ Wallet auto-detected. Base or Solana USDC. No config needed.
 
 ---
 
+## Growth Playbook
+
+These are the plays that get results:
+
+**Ride the wave** — `radar` shows you what's trending with real view counts. Post your angle on the #1 trend within 2 hours.
+
+**Activate your big followers** — `audience` segments followers by influence. One retweet from a 100K account > 100 of your own tweets.
+
+**Join the right conversations** — `hitlist` finds high-engagement threads. 15 minutes replying to top 5 conversations > 1 standalone tweet.
+
+**Build relationships** — `scout` finds KOLs in your space. Pick 5, engage consistently for 2 weeks. One RT from a 50K = a month of solo posting.
+
+**Study what works** — `insight` shows what content gets numbers. Don't guess, measure.
+
+---
+
 ## From the BlockRun Ecosystem
 
 <table>
@@ -253,9 +198,9 @@ Wallet auto-detected. Base or Solana USDC. No config needed.
 <td width="50%">
 
 ### 🦞 SocialClaw
-**X/Twitter Marketing Intelligence**
+**Intelligence-as-a-function for X/Twitter**
 
-You're here. Grow to 5M+ views in 3 months with trend detection, audience insights, and engagement optimization.
+You're here. The first X analytics an agent can call. $0.08 per report, no dashboard, no subscription.
 
 `pip install blockrun-llm[solana]`
 
@@ -263,9 +208,9 @@ You're here. Grow to 5M+ views in 3 months with trend detection, audience insigh
 <td width="50%">
 
 ### ⚡ [ClawRouter](https://github.com/BlockRunAI/ClawRouter)
-**Smart LLM Router — 92% Cost Savings**
+**The LLM router built for autonomous agents**
 
-Route every AI request to the right model at the right price. 41+ models, <1ms local routing, auto-switches between GPT, Claude, Gemini, DeepSeek based on task.
+41+ models, local smart routing, x402 USDC payments — the only stack that lets agents operate independently.
 
 `curl -fsSL https://blockrun.ai/ClawRouter-update | bash`
 
@@ -275,7 +220,7 @@ Route every AI request to the right model at the right price. 41+ models, <1ms l
 </tr>
 </table>
 
-> **SocialClaw + ClawRouter together:** SocialClaw uses ClawRouter under the hood to route your LLM requests to the cheapest model that can do the job. Your marketing intelligence reports cost less because ClawRouter picks DeepSeek for simple tasks and GPT-5 only when needed.
+> **SocialClaw + ClawRouter together:** SocialClaw pulls X/Twitter intelligence. ClawRouter routes your LLM requests to the cheapest capable model. Same wallet, same payment layer, two agent superpowers.
 
 ---
 
