@@ -30,7 +30,7 @@ def get_wallet_status(private_key: Optional[str] = None) -> Dict[str, Any]:
         return {
             "status": "not_configured",
             "error": str(e),
-            "help": "Set BLOCKRUN_WALLET_KEY environment variable",
+            "help": "Place wallet.json in any ~/.<provider>/ folder or set BLOCKRUN_WALLET_KEY",
         }
     except Exception as e:
         return {

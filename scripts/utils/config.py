@@ -4,12 +4,13 @@ BlockRun Configuration Module.
 Handles configuration management, environment variables, and presets.
 """
 
+import json
 import os
-from typing import Optional, Dict, Any
+from typing import Optional, Dict, Any, List, Tuple
 from pathlib import Path
 
 
-# Wallet storage location (agent's own wallet)
+# Legacy BlockRun wallet location
 WALLET_DIR = Path.home() / ".blockrun"
 WALLET_FILE = WALLET_DIR / ".session"
 SOLANA_WALLET_FILE = WALLET_DIR / ".solana-session"
@@ -26,84 +27,132 @@ DEFAULTS = {
 }
 
 
-def load_wallet() -> Optional[str]:
-    """
-    Load wallet private key from ~/.blockrun/.session file.
+CHAIN_FILE = WALLET_DIR / ".chain"
 
-    AI agents should have their own wallets. This is the agent's wallet.
+
+def get_chain() -> str:
+    """
+    Get selected chain preference.
 
     Returns:
-        Private key string or None if not found
+        "base" or "solana" (default: "base")
     """
-    # Check .session first (preferred)
-    if WALLET_FILE.exists():
-        key = WALLET_FILE.read_text().strip()
-        if key:
-            return key
+    if CHAIN_FILE.exists():
+        chain = CHAIN_FILE.read_text().strip().lower()
+        if chain in ("base", "solana"):
+            return chain
+    return "base"
 
-    # Check legacy wallet.key
-    legacy_file = WALLET_DIR / "wallet.key"
-    if legacy_file.exists():
-        key = legacy_file.read_text().strip()
-        if key:
-            return key
 
-    return None
+def _scan_wallet_files(filename: str) -> List[Tuple[str, str, Path]]:
+    """
+    Scan all ~/.<dir>/<filename> for wallet JSON files.
+
+    Returns:
+        List of (privateKey, address, path) sorted by mtime (newest first).
+    """
+    home = Path.home()
+    results = []
+
+    for entry in home.iterdir():
+        if not entry.name.startswith(".") or not entry.is_dir():
+            continue
+        wallet_file = entry / filename
+        if not wallet_file.is_file():
+            continue
+        try:
+            data = json.loads(wallet_file.read_text())
+            key = data.get("privateKey", "").strip()
+            addr = data.get("address", "").strip()
+            if key and addr:
+                results.append((key, addr, wallet_file))
+        except (json.JSONDecodeError, OSError):
+            continue
+
+    results.sort(key=lambda r: r[2].stat().st_mtime, reverse=True)
+    return results
+
+
+def scan_wallets() -> List[Tuple[str, str, Path]]:
+    """Scan for EVM wallet.json files across all ~/.<provider>/ dirs."""
+    return _scan_wallet_files("wallet.json")
+
+
+def scan_solana_wallets() -> List[Tuple[str, str, Path]]:
+    """Scan for solana-wallet.json files across all ~/.<provider>/ dirs."""
+    return _scan_wallet_files("solana-wallet.json")
 
 
 def get_private_key() -> Optional[str]:
     """
-    Get private key - session file first (agent wallet), then env vars (user override).
+    Get private key based on selected chain.
 
-    Priority:
-        1. ~/.blockrun/.session - Agent's own wallet
-        2. BLOCKRUN_WALLET_KEY env var - User override
-        3. BASE_CHAIN_WALLET_KEY env var - Legacy fallback
+    For base:  scan ~/.*/wallet.json → legacy ~/.blockrun/.session → env vars
+    For solana: scan ~/.*/solana-wallet.json → legacy ~/.blockrun/.solana-session → env vars
 
     Returns:
         Private key string or None
     """
-    # PRIORITY 1: Agent's own wallet (session file)
-    session_key = load_wallet()
-    if session_key:
-        return session_key
+    chain = get_chain()
 
-    # PRIORITY 2: User override via environment
-    return (
-        os.environ.get("BLOCKRUN_WALLET_KEY") or
-        os.environ.get("BASE_CHAIN_WALLET_KEY")
-    )
+    if chain == "solana":
+        # Scan solana-wallet.json files
+        wallets = scan_solana_wallets()
+        if wallets:
+            return wallets[0][0]
+
+        # Legacy solana session
+        if SOLANA_WALLET_FILE.exists():
+            key = SOLANA_WALLET_FILE.read_text().strip()
+            if key:
+                return key
+
+        return os.environ.get("SOLANA_WALLET_KEY")
+
+    else:  # base
+        # Scan wallet.json files
+        wallets = scan_wallets()
+        if wallets:
+            return wallets[0][0]
+
+        # Legacy base session
+        if WALLET_FILE.exists():
+            key = WALLET_FILE.read_text().strip()
+            if key:
+                return key
+
+        # Legacy wallet.key
+        legacy_file = WALLET_DIR / "wallet.key"
+        if legacy_file.exists():
+            key = legacy_file.read_text().strip()
+            if key:
+                return key
+
+        return (
+            os.environ.get("BLOCKRUN_WALLET_KEY") or
+            os.environ.get("BASE_CHAIN_WALLET_KEY")
+        )
 
 
-def load_solana_wallet() -> Optional[str]:
+def get_wallet_source() -> Optional[Dict[str, str]]:
     """
-    Load Solana wallet private key from ~/.blockrun/.solana-session file.
+    Get info about which wallet is being used.
 
     Returns:
-        bs58-encoded private key string or None if not found
+        Dict with chain, address, source path, or None if no wallet found.
     """
-    if SOLANA_WALLET_FILE.exists():
-        key = SOLANA_WALLET_FILE.read_text().strip()
-        if key:
-            return key
+    chain = get_chain()
+
+    if chain == "solana":
+        wallets = scan_solana_wallets()
+        if wallets:
+            return {"chain": "solana", "address": wallets[0][1], "source": str(wallets[0][2])}
+    else:
+        wallets = scan_wallets()
+        if wallets:
+            return {"chain": "base", "address": wallets[0][1], "source": str(wallets[0][2])}
+
     return None
-
-
-def get_solana_private_key() -> Optional[str]:
-    """
-    Get Solana private key - env var first, then session file.
-
-    Priority:
-        1. SOLANA_WALLET_KEY env var
-        2. ~/.blockrun/.solana-session file
-
-    Returns:
-        bs58-encoded private key string or None
-    """
-    env_key = os.environ.get("SOLANA_WALLET_KEY")
-    if env_key:
-        return env_key
-    return load_solana_wallet()
 
 
 def get_config() -> Dict[str, Any]:
@@ -139,8 +188,17 @@ def validate_config() -> Dict[str, Any]:
     warnings = []
 
     # Check for wallet key
+    chain = get_chain()
     if not get_private_key():
-        errors.append("No wallet found (check ~/.blockrun/.session or BLOCKRUN_WALLET_KEY)")
+        if chain == "solana":
+            errors.append("No Solana wallet found (looking for ~/.*/solana-wallet.json or SOLANA_WALLET_KEY)")
+        else:
+            errors.append("No Base wallet found (looking for ~/.*/wallet.json or BLOCKRUN_WALLET_KEY)")
+
+    # Show which wallet is being used
+    source = get_wallet_source()
+    if source:
+        warnings.append(f"Using {source['chain']} wallet from {source['source']}")
 
     # Check API URL format
     api_url = os.environ.get("BLOCKRUN_API_URL", DEFAULTS["api_url"])

@@ -94,7 +94,7 @@ def get_solana_wallet_status(private_key: Optional[str] = None) -> dict:
         return {
             "status": "not_configured",
             "error": str(e),
-            "help": "Set SOLANA_WALLET_KEY environment variable or run setup_agent_solana_wallet()",
+            "help": "Place solana-wallet.json in any ~/.<provider>/ folder or set SOLANA_WALLET_KEY",
         }
     except Exception as e:
         return {

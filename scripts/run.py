@@ -51,22 +51,34 @@ except ImportError:
 
 
 def check_environment() -> bool:
-    """Check if wallet is available (session file or env var)."""
+    """Check if wallet is available and show which one is being used."""
     try:
-        from scripts.utils.config import get_private_key
+        from scripts.utils.config import get_private_key, get_wallet_source, get_chain
     except ImportError:
-        from utils.config import get_private_key
+        from utils.config import get_private_key, get_wallet_source, get_chain
 
     key = get_private_key()
     if not key:
+        chain = get_chain()
         branding.print_error(
-            "No wallet found",
+            f"No {chain} wallet found",
             help_link="https://blockrun.ai/docs/setup"
         )
-        print("  Wallet auto-creates on first use, or set manually:")
-        print("    export BLOCKRUN_WALLET_KEY=\"0x...\"")
+        if chain == "solana":
+            print("  Looking for solana-wallet.json in ~/.<provider>/ folders")
+            print("  Or set: export SOLANA_WALLET_KEY=\"<bs58-key>\"")
+        else:
+            print("  Looking for wallet.json in ~/.<provider>/ folders")
+            print("  Or set: export BLOCKRUN_WALLET_KEY=\"0x...\"")
         print()
         return False
+
+    source = get_wallet_source()
+    if source:
+        branding.print_info(
+            f"Using {source['chain']} wallet {source['address'][:6]}...{source['address'][-4:]} "
+            f"from {source['source']}"
+        )
     return True
 
 
@@ -623,7 +635,7 @@ def cmd_solana_create():
             print("  Fund with USDC on Solana to start using BlockRun:")
             print()
             print(generate_solana_qr_ascii(address))
-            print(f"  Key stored securely in ~/.blockrun/.solana-session")
+            print(f"  Key stored in solana-wallet.json")
             print(f"  Your private key never leaves your machine.")
         else:
             branding.print_success(f"Solana wallet already exists")
