@@ -4,9 +4,9 @@
 
 <img src="assets/banner.png" alt="SocialClaw" width="600" />
 
-<h3>Grow your X/Twitter presence with AI-powered intelligence</h3>
+<h3>Grow your X/Twitter to 1M+ views with AI-powered intelligence</h3>
 
-<p>Competitor research, audience insights, trend discovery, and engagement strategy — all from your AI coding agent. No API keys needed.</p>
+<p>Real-time trend detection, audience insights, engagement optimization, and content strategy — all from your AI coding agent. No API keys needed.</p>
 
 <br />
 
@@ -15,156 +15,158 @@
 [![Gemini CLI](https://img.shields.io/badge/Gemini_CLI-Compatible-4285F4.svg)](https://github.com/google-gemini/gemini-cli)
 [![Cursor](https://img.shields.io/badge/Cursor-Compatible-000000.svg)](https://cursor.com)
 
-[Tutorials](#tutorials) · [Get Started](#get-started) · [Docs](docs/) · [Pricing](docs/pricing.md)
+[Growth Playbooks](#growth-playbooks) · [Get Started](#get-started) · [Docs](docs/) · [Pricing](docs/pricing.md)
 
 </div>
 
 ---
 
-## Tutorials
+## Growth Playbooks
 
-### How to spy on your competitors
+### How to get your first 1M impression week
 
-Find out what your competitor is doing on X — their posting strategy, who talks about them, and their most influential followers.
-
-```
-"Run a SocialClaw insight on @competitor"
-```
-
-Your AI agent will:
-1. Pull their full profile — followers, following, tweet count, verification
-2. Find their 20 most recent mentions — who's talking about them and with how much engagement
-3. Rank their followers by influence — find the big accounts following them
-
-**What you'll learn:**
-- How engaged their audience really is (not just follower count)
-- Which influencers are in their orbit
-- Their follower/following ratio (a key credibility signal)
-
----
-
-### How to find what to post about
-
-Stop guessing. See what's actually trending and what content is getting engagement right now.
+The accounts hitting 1M+ views aren't posting better content — they're posting the right content at the right time in the right conversations.
 
 ```
 "Run a SocialClaw radar on AI agents"
 ```
 
-Your AI agent will:
-1. Show you today's trending topics with view counts (Anthropic: 115M views, OpenAI: 51M views...)
-2. Pull the latest 20 tweets about your topic — see what people are saying
-3. Surface viral articles that are rising right now
+SocialClaw shows you **what's trending right now with real view counts**:
 
-**What you'll learn:**
-- Which topics have momentum today
-- What content format is getting engagement
-- Angle ideas for your next post
+```
+  Anthropic          158 articles   115,983,616 views
+  OpenAI              48 articles    51,378,182 views
+  Claude Code         29 articles    44,825,583 views
+  Bitcoin             34 articles    27,136,645 views
+```
+
+Then pulls the **latest tweets getting engagement** on your topic — so you can see what angles are working, what format gets likes, and where the conversation is heading.
+
+**The play:** Post your take on the #1 trending topic within 2 hours of it spiking. SocialClaw catches it. You ride the wave.
 
 ---
 
-### How to find influencers in your niche
+### How to build a high-value audience (not just followers)
 
-Discover the key voices in any topic — ranked by influence, ready for outreach or collaboration.
+10K followers who are all bots = worthless. 500 followers where 20 have 50K+ followers = distribution machine.
 
 ```
-"Run a SocialClaw scout on base blockchain"
+"Run a SocialClaw audience analysis on @jessepollak"
 ```
 
-Your AI agent will:
-1. Search X for your topic
-2. Extract every unique author from the results
-3. Batch-lookup their profiles and rank by follower count
+SocialClaw segments followers by influence tier:
 
-**What you'll learn:**
-- Top 20 voices in your space with follower counts and bios
-- Who to follow, engage with, or pitch for collaboration
-- The accounts that are actually driving conversation (not just big, but active)
+```
+  MEGA (100K+):  @alloxdotai (131K), @AprilCumberland (60K)
+  MACRO (10K-100K):  8 accounts
+  MICRO (1K-10K):  15 accounts
+
+  COMMON BIO THEMES: "crypto", "web3", "builder", "defi"
+```
+
+**The play:** Study what Mega and Macro followers care about. Create content for THEM — not for the masses. When a 100K account likes your post, their followers see it. That's how you 10x impressions without 10x effort.
 
 ---
 
-### How to find high-value conversations to join
+### How to 10x your engagement rate
 
-Engagement is the fastest growth lever on X. SocialClaw finds the conversations worth your time.
+Most people post and pray. SocialClaw finds the conversations that are already getting traction — you just need to show up.
 
 ```
 "Run a SocialClaw hitlist on AI agents crypto"
 ```
 
-Your AI agent will:
-1. Search for recent tweets on your topic
-2. Rank them by engagement (likes + retweets) × author influence
-3. Suggest reply angles for each conversation
+```
+  @solana_daily (45K followers) — 15 likes, climbing
+    "Solana Projects to Watch this Week: @BlockRunAI..."
+    → Jump in: share a specific insight or data point about your project
 
-**What you'll learn:**
-- Which conversations are getting traction right now
-- Who's posting them (and how many followers they have)
-- How to craft a reply that gets noticed
+  @A47X124 (12K followers) — 8 likes
+    "The ones not on these lists are usually the ones that surprise..."
+    → Jump in: agree + drop your own unlisted pick
+```
+
+**The play:** Spend 15 minutes replying to the top 5 conversations SocialClaw surfaces. A thoughtful reply on a trending thread gets more impressions than a standalone tweet to your 500 followers.
 
 ---
 
-### How to understand your audience
+### How to find the right people to connect with
 
-Who actually follows your competitors? Are they crypto people? Developers? VCs? Segment by influence tier and find patterns.
+Growth on X is about relationships, not broadcasting. SocialClaw finds who actually drives conversation in your space.
 
 ```
-"Run a SocialClaw audience analysis on @competitor"
+"Run a SocialClaw scout on base blockchain"
 ```
 
-Your AI agent will:
-1. Pull 200 followers
-2. Batch-lookup the top 50 by follower count for detailed profiles
-3. Segment into tiers: Mega (100K+), Macro (10K-100K), Micro (1K-10K)
-4. Analyze bios for common themes
+```
+  TOP VOICES
+    @jessepollak            347,004 followers — @base builder #001
+    @BuildOnBase             89,200 followers — Official Base account
+    @coinaborsh              45,000 followers — Ecosystem analyst
+```
 
-**What you'll learn:**
-- Audience composition by influence tier
-- Common interests (from bio keywords)
-- Potential partners or leads from the Mega/Macro tier
+**The play:** Pick 5-10 accounts from the scout list. Follow them, engage with their content consistently for 2 weeks. Not spam — genuine replies with insights. When they notice you, one retweet from a 50K account = more reach than a month of solo posting.
 
 ---
 
-### How to do a daily growth check-in
+### How to know what to post every morning
 
-Run this every morning. 2 minutes, 3 actions for the day.
+Decision fatigue kills consistency. SocialClaw gives you 3 actions every morning — just execute.
 
 ```
 "Run a SocialClaw brief on @myaccount"
 ```
 
-Your AI agent will:
-1. Check who mentioned you overnight
-2. Show what's trending in your space
-3. Surface any rising viral content
-4. Give you 3 concrete actions for today
+```
+  YOUR MENTIONS: 5 new (reply to @Rich_lifee_ — talking about you to 5K followers)
+  TRENDING: Anthropic at 115M views, Claude Code at 44M views
+  RISING: "AI agents reshape products" going viral
 
-**Example output:**
+  SUGGESTED ACTIONS
+    1. Reply to @Rich_lifee_ with a specific insight
+    2. Post your take on the Anthropic trend
+    3. Quote-tweet the rising AI agents article with your angle
 ```
-SUGGESTED ACTIONS
-  1. Reply to @Rich_lifee_ — they're talking about you to 5K followers
-  2. Create content around "Anthropic" trend (115M views today)
-  3. Share perspective on rising "AI agents" article
-```
+
+**The play:** Run this every morning before your first tweet. 2 minutes. 3 actions. Done. Consistency > creativity.
 
 ---
 
-### How to benchmark against a competitor
+### How to benchmark your growth
 
-Side-by-side comparison — see where you're winning and where to improve.
+You can't improve what you don't measure. Compare your account against others at your stage or above.
 
 ```
 "Run a SocialClaw compare on @me vs @competitor"
 ```
 
-Your AI agent will:
-1. Pull both profiles side-by-side
-2. Compare mention engagement (who gets more buzz?)
-3. Compare follower quality (who has bigger accounts following them?)
+```
+  METRIC              @you            @them
+  ─────────────────────────────────────────
+  Followers           2,100           8,400
+  Mention likes          56               7
+  Top follower      131,567             525
+```
 
-**What you'll learn:**
-- Raw numbers: followers, tweets, verification
-- Engagement quality: who actually gets talked about more
-- Audience quality: whose followers have more influence
+**The insight:** Fewer followers but way more mention engagement and higher-quality followers? You're on the right track — your audience is more engaged per capita. Double down on engagement quality, not follower count.
+
+---
+
+### How to study what content actually works
+
+Stop copying what looks good. See what actually gets numbers.
+
+```
+"Run a SocialClaw insight on @topaccount"
+```
+
+SocialClaw pulls their mentions, engagement patterns, and audience composition. Look at:
+
+- **Which of their tweets get mentioned by big accounts?** That's the content format that works.
+- **What's their F/F ratio?** High ratio = their content pulls followers organically.
+- **Who are their most influential followers?** That tells you who they create content for.
+
+**The play:** Find 3 accounts at 10x your size. Run insight on each. Look for patterns in what gets their big followers to engage. Adapt that format for your niche.
 
 ---
 
@@ -184,24 +186,22 @@ pip install blockrun-llm[solana]
 ```bash
 git clone https://github.com/BlockRunAI/socialclaw && cd socialclaw
 pip install blockrun-llm[solana]
-python scripts/socialclaw.py insight @anyuser
+python scripts/socialclaw.py radar "your topic"
 ```
 
-**Wallet auto-detected.** SocialClaw scans your `~/` directory for any USDC wallet (Base or Solana). No config needed.
+Wallet auto-detected from any `~/.<provider>/` folder. Base or Solana USDC. No config needed.
 
 ---
 
 ## Works With Every AI Agent
 
-SocialClaw is a Python SDK. It works anywhere Python runs.
-
-| Platform | How it works |
-|----------|-------------|
-| **Claude Code** | Loads as a skill. Agent reads SKILL.md, calls SDK automatically. |
-| **OpenAI Codex** | Executes Python in sandbox. Import SDK, run workflows. |
-| **Gemini CLI** | Loads as Antigravity skill. Same SDK, same workflows. |
-| **Cursor / Windsurf** | Agent reads CLAUDE.md for context, calls SDK via terminal. |
-| **Any terminal** | `python scripts/socialclaw.py insight @user` |
+| Platform | How |
+|----------|-----|
+| **Claude Code** | Loads as a skill. Just say "run socialclaw insight on @user". |
+| **OpenAI Codex** | `pip install blockrun-llm[solana]` in sandbox. |
+| **Gemini CLI** | Clone to `~/.gemini/antigravity/skills/socialclaw`. |
+| **Cursor / Windsurf** | Agent reads CLAUDE.md, calls SDK via terminal. |
+| **Any terminal** | `python scripts/socialclaw.py radar "topic"` |
 | **Your own agent** | `from blockrun_llm import SolanaLLMClient` |
 
 ---
@@ -209,21 +209,21 @@ SocialClaw is a Python SDK. It works anywhere Python runs.
 ## How It Works
 
 ```
-   You: "spy on @competitor"
+   "How do I get more views on my AI content?"
     ↓
-   SocialClaw finds your USDC wallet (auto-scan ~/.<any>/)
+   SocialClaw finds your wallet (auto-scan ~/.<any>/)
     ↓
-   Calls BlockRun API → pays per request via x402
+   Pulls real-time X data via BlockRun API (x402 micropayment)
     ↓
-   Data saved locally (~/.blockrun/data/)
+   Saves everything locally (~/.blockrun/data/)
     ↓
-   AI agent synthesizes into actionable growth insights
+   AI agent turns data into actionable growth strategy
 ```
 
 - **No API keys.** Your wallet IS your authentication.
-- **No subscriptions.** Pay only for what you use.
-- **Private key stays local.** Only cryptographic signatures are sent — like signing a MetaMask tx.
-- **Data is yours.** Every response saved as JSON in `~/.blockrun/data/`.
+- **No subscriptions.** ~$0.08 per report. $1 = ~12 reports.
+- **Private key stays local.** Only signatures are sent.
+- **Data is yours.** Every response saved as JSON.
 
 ---
 
@@ -231,8 +231,8 @@ SocialClaw is a Python SDK. It works anywhere Python runs.
 
 | | |
 |--|--|
-| [Pricing](docs/pricing.md) | Workflow costs, API endpoint costs, vs. alternatives |
-| [API Reference](docs/api-reference.md) | All 16 X/Twitter endpoints + AI models |
+| [Pricing](docs/pricing.md) | Costs per workflow, per endpoint, vs. alternatives |
+| [API Reference](docs/api-reference.md) | All 16 X/Twitter endpoints + 30 AI models |
 
 ---
 
