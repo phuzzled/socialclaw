@@ -1,33 +1,94 @@
-# SocialClaw — X/Twitter Marketing Intelligence Agent
+# SocialClaw
 
 <div align="center">
 
-![SocialClaw](assets/blockrun-agent-skill.png)
+<h3>X/Twitter Marketing Intelligence for AI Agents</h3>
+
+<p>Turn real-time X/Twitter data into growth strategy — account insights, competitor analysis, audience mapping, KOL discovery, and daily briefs. Works with any AI coding agent.</p>
+
+<br />
 
 [![Claude Code](https://img.shields.io/badge/Claude_Code-Skill-orange.svg)](https://github.com/anthropics/skills)
+[![OpenAI Codex](https://img.shields.io/badge/OpenAI_Codex-Compatible-412991.svg)](https://openai.com/codex)
+[![Gemini CLI](https://img.shields.io/badge/Gemini_CLI-Compatible-4285F4.svg)](https://github.com/google-gemini/gemini-cli)
+[![Cursor](https://img.shields.io/badge/Cursor-Compatible-000000.svg)](https://cursor.com)
 [![No API Keys](https://img.shields.io/badge/API_Keys-None_Required-brightgreen.svg)](https://blockrun.ai)
-[![USDC Payments](https://img.shields.io/badge/Pay_with-USDC-2775CA.svg)](https://blockrun.ai)
+[![USDC](https://img.shields.io/badge/Pay_with-USDC-2775CA.svg)](https://blockrun.ai)
+[![Base](https://img.shields.io/badge/Base-Chain-0052FF.svg)](https://base.org)
+[![Solana](https://img.shields.io/badge/Solana-Chain-9945FF.svg)](https://solana.com)
 [![License](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
-**X/Twitter intelligence for growth. No API keys, no subscriptions — just USDC micropayments.**
+[Get Started](#get-started) · [Workflows](#workflows) · [API Reference](#api-reference) · [Pricing](#pricing)
 
 </div>
 
 ---
 
-## 7 Marketing Workflows
+## Why SocialClaw?
 
-SocialClaw chains multiple X/Twitter API calls into actionable marketing intelligence. One wallet, one command.
+|  | X API (Official) | Third-party tools | **SocialClaw** |
+|--|-----------------|-------------------|----------------|
+| Cost | $100+/month | $50-200/month | **$0.03-0.15 per report** |
+| API keys | Required | Required | **None** |
+| Setup time | Hours | Minutes | **Seconds** |
+| Works in terminal | No | No | **Yes** |
+| AI agent native | No | No | **Yes** |
+| Pay-as-you-go | No | No | **Yes** |
+| Data saved locally | No | No | **Yes** |
+
+**$1 USDC = ~12 full marketing reports.** No subscriptions. No API keys. Just results.
+
+---
+
+## Get Started
+
+**Claude Code:**
+```
+try https://github.com/BlockRunAI/socialclaw
+```
+
+**Codex / Cursor / any agent:**
+```bash
+pip install blockrun-llm[solana]
+```
+
+**CLI:**
+```bash
+git clone https://github.com/BlockRunAI/socialclaw && cd socialclaw
+pip install blockrun-llm[solana]
+python scripts/socialclaw.py insight @anyuser
+```
+
+SocialClaw auto-detects any USDC wallet in your `~/` directory — Base or Solana. No config needed.
+
+---
+
+## Workflows
+
+Seven marketing workflows that chain multiple API calls into actionable intelligence.
+
+| # | Workflow | What it does | Cost |
+|---|---------|-------------|------|
+| 1 | [**Insight**](#1-insight--account-deep-dive) | Full account analysis — profile, mentions, top followers | ~$0.08 |
+| 2 | [**Radar**](#2-radar--topic-intelligence) | What's trending, what's working, where to post | ~$0.07 |
+| 3 | [**Compare**](#3-compare--competitor-analysis) | Side-by-side competitor breakdown | ~$0.15 |
+| 4 | [**Audience**](#4-audience--follower-segmentation) | Who follows them? Segment by influence tier | ~$0.15 |
+| 5 | [**Scout**](#5-scout--kol-discovery) | Find top voices in any topic | ~$0.07 |
+| 6 | [**Hitlist**](#6-hitlist--engagement-targets) | High-value conversations to join right now | ~$0.03 |
+| 7 | [**Brief**](#7-brief--daily-marketing-report) | Morning report: mentions + trends + actions | ~$0.08 |
 
 ---
 
 ### 1. Insight — Account Deep-Dive
 
-_Who is this account? What's their influence? Who talks about them?_
+> _Who is this account? What's their influence? Who's talking about them?_
 
 ```
 socialclaw insight @jessepollak
 ```
+
+<details>
+<summary>Example output</summary>
 
 ```
   PROFILE
@@ -52,52 +113,67 @@ socialclaw insight @jessepollak
   Cost: $0.08 (3 calls)
 ```
 
-**What you get:** Profile stats, F/F ratio, engagement quality, top followers ranked by influence, mention sentiment.
+</details>
+
+**Chains:** `users/info` → `users/mentions` → `users/followers`
+**Output:** Profile stats, F/F ratio, mention sentiment, top followers ranked by influence.
 
 ---
 
 ### 2. Radar — Topic Intelligence
 
-_What's hot? What content is working? Where should I jump in?_
+> _What's hot? What content format is working? Where should I jump in?_
 
 ```
 socialclaw radar "AI agents"
 ```
+
+<details>
+<summary>Example output</summary>
 
 ```
   TRENDING NOW
     Anthropic          158 articles   115,983,616 views
     OpenAI              48 articles    51,378,182 views
     Claude Code         29 articles    44,825,583 views
+    Bitcoin              34 articles    27,136,645 views
 
   LATEST TWEETS (20 found)
     @Computerworld  [0 likes] Microsoft shuffles leadership as Copilot and AI agents...
     @badlogicgames  [5 likes] pi now has feature parity with other agents from July 2025...
+    @_agslabs       [1 likes] Indian builders — hackathon wave is LIVE!
 
   RISING ARTICLES
-    [viral] One day — https://x.com/Tad_2/status/...
+    [viral] "One day" — https://x.com/Tad_2/status/...
 
   TOPIC PULSE
+    Total engagement (latest 20 tweets): 9
     Avg likes per tweet: 0.5
 
   Cost: $0.07 (4 calls)
 ```
 
-**What you get:** Trending topics with view counts, latest conversation, top-performing tweets, viral content detection, content opportunity signals.
+</details>
+
+**Chains:** `trending` → `search (Latest)` → `search (Top)` → `articles/rising`
+**Output:** Trending topics with views, latest conversation, top tweets, viral content, content opportunity signals.
 
 ---
 
 ### 3. Compare — Competitor Analysis
 
-_Side-by-side: who's winning and why?_
+> _Side-by-side: who's winning and why?_
 
 ```
 socialclaw compare @jessepollak @VitalikButerin
 ```
 
+<details>
+<summary>Example output</summary>
+
 ```
   METRIC              @jessepollak    @VitalikButerin
-  ─────────────────────────────────────────────────
+  ─────────────────────────────────────────────────────
   Followers              347,004         5,800,000
   Following                4,406            ~3,000
   Tweets                  57,569           ~15,000
@@ -105,7 +181,7 @@ socialclaw compare @jessepollak @VitalikButerin
   F/F Ratio               78.7x            ~1900x
 
   MENTIONS              @jessepollak    @VitalikButerin
-  ─────────────────────────────────────────────────
+  ─────────────────────────────────────────────────────
   Recent mentions              20                20
   Total likes                  56                 7
   Avg likes/mention           2.8               0.3
@@ -125,19 +201,23 @@ socialclaw compare @jessepollak @VitalikButerin
   Cost: $0.15 (6 calls)
 ```
 
-**What you get:** Follower counts, posting frequency, engagement comparison, audience quality, who has momentum.
+</details>
+
+**Chains:** `users/info` ×2 → `users/mentions` ×2 → `users/followers` ×2
+**Output:** Followers, posting frequency, engagement, audience quality, who has momentum.
 
 ---
 
 ### 4. Audience — Follower Segmentation
 
-_Who follows them? Cluster by influence tier._
+> _Who follows them? Cluster by influence tier and interests._
 
 ```
 socialclaw audience @jessepollak
 ```
 
-Gets 200 followers → batch lookups top 50 → segments into tiers:
+<details>
+<summary>Example output</summary>
 
 ```
   MEGA INFLUENCERS (100K+ followers): 2
@@ -155,19 +235,23 @@ Gets 200 followers → batch lookups top 50 → segments into tiers:
   Cost: $0.15 (3 calls)
 ```
 
-**What you get:** Audience tiers, common interests from bios, potential partnership targets.
+</details>
+
+**Chains:** `users/followers` → `users/lookup` (batch top 50) → segment + analyze bios
+**Output:** Audience tiers (mega/macro/micro), common interests, potential partners.
 
 ---
 
 ### 5. Scout — KOL Discovery
 
-_Find the key voices in any topic._
+> _Find the key voices in any topic — ranked by influence, ready for outreach._
 
 ```
 socialclaw scout "base blockchain"
 ```
 
-Searches topic → extracts authors → batch lookups → ranks by influence:
+<details>
+<summary>Example output</summary>
 
 ```
   TOP VOICES ON "base blockchain"
@@ -175,179 +259,257 @@ Searches topic → extracts authors → batch lookups → ranks by influence:
     @BuildOnBase             89,200 followers — Official Base account
     @coinaborsh              45,000 followers — Base ecosystem analyst
     @web3marketer            23,400 followers — Growth at Base projects
-    ...
+    @basedbuilder            12,100 followers — Shipping on Base daily
 
   Cost: $0.07 (2 calls)
 ```
 
-**What you get:** Ranked influencer list with follower counts and bios — ready for outreach.
+</details>
+
+**Chains:** `search` → extract unique authors → `users/lookup` (batch) → rank by followers
+**Output:** Ranked influencer list with follower counts and bios.
 
 ---
 
 ### 6. Hitlist — Engagement Targets
 
-_High-value conversations to engage with RIGHT NOW._
+> _High-value conversations happening RIGHT NOW. Jump in._
 
 ```
 socialclaw hitlist "AI agents crypto"
 ```
 
-Finds high-engagement tweets → ranks by engagement × author influence:
+<details>
+<summary>Example output</summary>
 
 ```
   ENGAGEMENT TARGETS
     @solana_daily (45K followers) — 14 likes
       "Solana Projects to Watch this Week: @anagramxyz @BlockRunAI..."
-      → Reply angle: share your project's update
+      → Reply angle: share your project's latest update
 
     @A47X124 (12K followers) — 8 likes
       "The ones not on these lists are usually the ones that surprise..."
-      → Reply angle: agree + mention an unlisted project
+      → Reply angle: agree + highlight an unlisted project
 
     @taowang1 (8K followers) — 4 likes
-      "@MAIN_AI_DEX @CoinbaseDev @BlockRunAI Please include $fxUSD"
-      → Reply angle: engage with ecosystem discussion
+      "@CoinbaseDev @BlockRunAI Please include $fxUSD"
+      → Reply angle: join the ecosystem conversation
 
   Cost: $0.03 (1 call)
 ```
 
-**What you get:** Ranked conversations to join, sorted by engagement potential, with suggested reply angles.
+</details>
+
+**Chains:** `search` → sort by (engagement × author influence)
+**Output:** Ranked conversations to join, with suggested reply angles. Cheapest workflow.
 
 ---
 
 ### 7. Brief — Daily Marketing Report
 
-_What happened overnight? What should I post today?_
+> _What happened overnight? What should I post today?_
 
 ```
 socialclaw brief @blockrunai
 ```
 
+<details>
+<summary>Example output</summary>
+
 ```
   YOUR MENTIONS (5 new)
     @KashKysh: Let's watch closely folks
-    @Rich_lifee_: The are the ones that ends up with the biggest...
+    @Rich_lifee_: They are the ones that end up with the biggest...
 
   TRENDING NOW
     Anthropic          158 articles   115M views
     OpenAI              48 articles    51M views
+    Claude Code         29 articles    44M views
 
   RISING CONTENT
-    "One day" — going viral
-    "AI agents reshape products" — rising
+    "AI agents reshape products" — going viral on X
 
   SUGGESTED ACTIONS
-    1. Reply to @Rich_lifee_ — they're talking about you to 5K followers
+    1. Reply to @Rich_lifee_ — talking about you to 5K followers
     2. Create content around "Anthropic" trend (115M views today)
-    3. Share perspective on "AI agents reshape products" article
+    3. Share perspective on rising "AI agents" article
 
   Cost: $0.08 (3 calls)
 ```
 
-**What you get:** Morning brief with mentions, trends, and 3 concrete actions for today.
+</details>
+
+**Chains:** `users/mentions` → `trending` → `articles/rising`
+**Output:** Morning brief with mentions, trends, and 3 concrete actions.
 
 ---
 
-## Install
+## API Reference
 
-In Claude Code:
+All data through [BlockRun](https://blockrun.ai)'s unified gateway, powered by [AttentionVC](https://attentionvc.com).
 
-```
-try https://github.com/BlockRunAI/socialclaw
-```
+### X/Twitter Data (16 endpoints)
 
-Or manually:
+| Method | What | Cost |
+|--------|------|------|
+| `x_user_info(username)` | Profile, bio, stats, verification | $0.002 |
+| `x_user_lookup([users])` | Batch profiles, up to 100 | $0.002/user |
+| `x_followers(username)` | Follower list ~200/page | $0.05/page |
+| `x_followings(username)` | Following list ~200/page | $0.05/page |
+| `x_verified_followers(user_id)` | Blue-check followers only | $0.048/page |
+| `x_user_tweets(username)` | User's tweets + engagement | $0.032/page |
+| `x_user_mentions(username)` | Tweets mentioning user | $0.032/page |
+| `x_search(query)` | Search tweets, Latest or Top | $0.032/page |
+| `x_trending()` | Trending topics + view counts | $0.002 |
+| `x_articles_rising()` | Viral content detection | $0.05 |
+| `x_tweet_lookup([ids])` | Batch tweet data, up to 200 | $0.16/batch |
+| `x_tweet_replies(tweet_id)` | Replies to a tweet | $0.032/page |
+| `x_tweet_thread(tweet_id)` | Full conversation thread | $0.032/page |
+| `x_author_analytics(handle)` | Author intelligence score | $0.02 |
+| `x_compare_authors(h1, h2)` | Compare two accounts | $0.05 |
 
-```bash
-git clone https://github.com/BlockRunAI/socialclaw
-cd socialclaw
-pip install blockrun-llm[solana]
-python scripts/socialclaw.py insight @anyuser
-```
+### AI Models
 
----
+| Method | What | Cost |
+|--------|------|------|
+| `chat(model, prompt)` | GPT-5.2, Grok, DeepSeek, Claude, Gemini | varies |
+| `chat(model, prompt, search=True)` | Grok with live X/Twitter search | ~$0.25 |
+| `search(query)` | Web + X + news search | ~$0.25 |
+| `generate(prompt)` | Image generation (DALL-E, Nano Banana) | $0.01-0.04 |
+| `image_edit(prompt, image)` | Image editing | $0.02-0.04 |
 
-## Wallet Setup
+### 30+ LLM Models Available
 
-SocialClaw auto-detects wallets. No manual config needed.
-
-It scans `~/.<any-folder>/wallet.json` and `~/.<any-folder>/solana-wallet.json` — works with any compatible wallet provider. Solana or Base, whichever has funds.
+| Model | Best for | Input | Output |
+|-------|----------|-------|--------|
+| `openai/gpt-5.2` | General, code review | $1.75/M | $14.00/M |
+| `openai/gpt-5-mini` | Fast + cheap | $0.30/M | $1.20/M |
+| `xai/grok-3` | Real-time X data | $3.00/M | $15.00/M |
+| `deepseek/deepseek-chat` | Bulk processing | $0.28/M | $0.42/M |
+| `anthropic/claude-sonnet-4` | Coding | $3.00/M | $15.00/M |
+| `google/gemini-2.5-flash` | Long documents | $0.15/M | $0.60/M |
 
 ---
 
 ## Pricing
 
-| Workflow | API Calls | Cost |
-|----------|-----------|------|
-| Insight | profile + mentions + followers | ~$0.08 |
-| Radar | trending + search + rising articles | ~$0.07 |
-| Compare | 2× profile + 2× mentions + 2× followers | ~$0.15 |
-| Audience | followers + batch lookup top 50 | ~$0.15 |
-| Scout | search + batch lookup authors | ~$0.07 |
-| Hitlist | search (sorted by engagement) | ~$0.03 |
-| Brief | mentions + trending + rising | ~$0.08 |
+### Workflow Costs
 
-**$1 USDC gets you ~12 full reports.** No subscriptions, no monthly fees.
+| Workflow | API Calls | Cost | What $1 gets you |
+|----------|-----------|------|-----------------|
+| Insight | 3 calls | ~$0.08 | 12 reports |
+| Radar | 4 calls | ~$0.07 | 14 reports |
+| Compare | 6 calls | ~$0.15 | 6 reports |
+| Audience | 3 calls | ~$0.15 | 6 reports |
+| Scout | 2 calls | ~$0.07 | 14 reports |
+| Hitlist | 1 call | ~$0.03 | 33 reports |
+| Brief | 3 calls | ~$0.08 | 12 reports |
 
----
+### vs. Alternatives
 
-## API Endpoints
-
-All data via [BlockRun](https://blockrun.ai)'s unified gateway, powered by [AttentionVC](https://attentionvc.com):
-
-| Endpoint | What you get | Cost |
-|----------|-------------|------|
-| `users/info` | Profile, bio, stats, verification | $0.002 |
-| `users/lookup` | Batch profiles (up to 100) | $0.002/user |
-| `users/followers` | Follower list with stats (~200/page) | $0.05/page |
-| `users/followings` | Following list (~200/page) | $0.05/page |
-| `users/tweets` | User's tweets with engagement | $0.032/page |
-| `users/mentions` | Who's talking about them | $0.032/page |
-| `search` | Search tweets (Latest/Top) | $0.032/page |
-| `trending` | Trending topics + view counts | $0.002 |
-| `articles/rising` | Viral content detection | $0.05 |
-| `tweets/lookup` | Batch tweet data (up to 200) | $0.16/batch |
-| `tweets/replies` | Replies to a tweet | $0.032/page |
-| `tweets/thread` | Full thread context | $0.032/page |
-
----
-
-## Data Auto-Save
-
-Every paid API response is saved to `~/.blockrun/data/` as JSON — you paid for it, you keep it.
-
-```
-~/.blockrun/data/
-  20260314_030816_trending.json
-  20260314_030820_search_blockrunai.json
-  20260314_025259_mentions_jessepollak.json
-```
+| What you need | X API Official | SocialClaw |
+|--------------|---------------|------------|
+| 1 profile lookup | $100/month subscription | **$0.002** |
+| 1,000 follower profiles | $100/month subscription | **$0.25** |
+| Trending topics | $100/month subscription | **$0.002** |
+| Full competitor report | $100/month + build it yourself | **$0.15** |
 
 ---
 
 ## How It Works
 
 ```
-You: "analyze @competitor's X presence"
-       ↓
-SocialClaw: finds wallet → calls BlockRun APIs → pays with USDC → saves data locally
-       ↓
-Output: actionable marketing insight report
+        ┌─────────────────────────────────────┐
+        │  "analyze @competitor's X presence"  │
+        └──────────────────┬──────────────────┘
+                           │
+            ┌──────────────▼──────────────┐
+            │   SocialClaw finds wallet   │
+            │  ~/.<any>/solana-wallet.json │
+            │  ~/.<any>/wallet.json        │
+            └──────────────┬──────────────┘
+                           │
+            ┌──────────────▼──────────────┐
+            │  Calls BlockRun API gateway  │
+            │  x402 USDC micropayment     │
+            │  Private key stays local    │
+            └──────────────┬──────────────┘
+                           │
+            ┌──────────────▼──────────────┐
+            │  Data saved to              │
+            │  ~/.blockrun/data/          │
+            │  (you paid for it, keep it) │
+            └──────────────┬──────────────┘
+                           │
+            ┌──────────────▼──────────────┐
+            │  Actionable marketing       │
+            │  intelligence report        │
+            └─────────────────────────────┘
 ```
 
-- Wallet auto-detected from any `~/.<provider>/` folder
-- Payment via x402 protocol (USDC on Solana or Base)
-- Private key never leaves your machine — only signatures sent
-- All data cached locally in `~/.blockrun/data/`
+### Payment
 
-> All capabilities — X/Twitter data, image generation, LLM, and search — are available through BlockRun's unified gateway. One wallet, one SDK, everything you need.
+- **Protocol:** [x402](https://x402.org) — HTTP 402 micropayments
+- **Currency:** USDC on [Base](https://base.org) or [Solana](https://solana.com)
+- **Security:** Private key never leaves your machine. Only cryptographic signatures are transmitted — same as signing a MetaMask transaction.
+
+### Wallet Auto-Detection
+
+SocialClaw scans `~/.<any-folder>/` for `wallet.json` or `solana-wallet.json`. Compatible with:
+
+- [AgentCash](https://agentcash.dev) wallets
+- x402 wallets
+- Any wallet using the standard `{"privateKey": "...", "address": "..."}` format
+
+### Data Persistence
+
+Every API response saved as timestamped JSON:
+
+```
+~/.blockrun/data/
+├── 20260314_030816_trending.json
+├── 20260314_030820_search_blockrunai.json
+├── 20260314_025259_mentions_jessepollak.json
+└── 20260314_030502_followers_VitalikButerin.json
+```
 
 ---
 
-## Links
+## Works With Every AI Coding Agent
 
-[blockrun.ai](https://blockrun.ai) · [AttentionVC](https://attentionvc.com) · [x402 Protocol](https://x402.org) · [care@blockrun.ai](mailto:care@blockrun.ai)
+SocialClaw is a Python SDK + skill definition. It works anywhere Python runs — which means every major AI agent platform.
+
+| Platform | Install | How it works |
+|----------|---------|-------------|
+| **Claude Code** | `try https://github.com/BlockRunAI/socialclaw` | Loads as a Claude Code skill. Agent reads SKILL.md, calls SDK automatically. |
+| **OpenAI Codex** | `pip install blockrun-llm[solana]` | Codex executes Python in sandbox. Import SDK, run workflows. |
+| **Gemini CLI / Antigravity** | `git clone ... ~/.gemini/antigravity/skills/socialclaw` | Loads as Antigravity skill. Same SDK, same workflows. |
+| **Cursor / Windsurf** | `pip install blockrun-llm[solana]` | Agent reads CLAUDE.md for context, calls SDK via terminal. |
+| **Any terminal** | `python scripts/socialclaw.py insight @user` | Direct CLI. No agent needed. |
+| **Your own agent** | `from blockrun_llm import SolanaLLMClient` | Import as a library. Build custom workflows. |
+
+**Why it works everywhere:** SocialClaw is just Python + a wallet. No platform-specific APIs, no cloud dependencies, no auth servers. The SDK handles x402 payment signing locally and talks directly to BlockRun's gateway. Any agent that can run `pip install` and execute Python can use it.
 
 ---
 
-MIT · Powered by [BlockRun](https://blockrun.ai) × [AttentionVC](https://attentionvc.com) · Built by [@bc1beat](https://x.com/bc1beat)
+## Contributing
+
+SocialClaw is open source. PRs welcome.
+
+```bash
+git clone https://github.com/BlockRunAI/socialclaw
+cd socialclaw
+pip install blockrun-llm[solana]
+python scripts/socialclaw.py radar "your topic"
+```
+
+---
+
+<div align="center">
+
+**[blockrun.ai](https://blockrun.ai)** · **[AttentionVC](https://attentionvc.com)** · **[x402 Protocol](https://x402.org)** · **[hello@blockrun.ai](mailto:hello@blockrun.ai)**
+
+MIT · Powered by [BlockRun](https://blockrun.ai) × [AttentionVC](https://attentionvc.com)
+
+</div>
