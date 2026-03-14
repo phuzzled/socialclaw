@@ -51,60 +51,62 @@ socialclaw scout "x402 crypto"
 
 ---
 
-## Real Example: @bc1beat Growth Plan
+## Real Example: Growing a Startup's X Presence
 
-We ran SocialClaw on [@bc1beat](https://x.com/bc1beat). Here's what the data showed and exactly what to do:
+We ran SocialClaw on a startup account with ~3K followers. Here's the playbook it generated:
 
 ### 3 things to do right now
 
 **1. Activate your biggest followers**
 
-SocialClaw found these high-influence accounts already following @bc1beat:
+SocialClaw scans your follower list and ranks by influence. Typical output:
 
-| Follower | Their reach | Action |
-|----------|------------|--------|
-| @HarryKamaAI | 196,829 | Reply to their latest tweet with a genuine insight. Get on their radar. |
-| @bojoh_yukino | 83,120 | Engage with their content this week. When they RT you, their 83K see it. |
-| @Tintinx2021 | 55,190 | Same play. Consistent engagement → relationship → amplification. |
-| @villainmonkey | 16,822 | They DM'd you. Reply — this is a warm lead for collaboration. |
-| @BLE77_ED | 11,662 | They publicly said "W!!" about your project. Reply with a project update. |
+```
+  TOP FOLLOWERS
+    @mega_influencer         196,829 followers
+    @vc_partner               83,120 followers
+    @ecosystem_builder        55,190 followers
+    @community_lead           16,822 followers  ← DM'd you, reply!
+    @early_supporter          11,662 followers  ← publicly praised you, reply with update
+```
 
-> One retweet from @HarryKamaAI (196K) = more impressions than 100 of your own tweets.
+> One retweet from a 100K+ account = more impressions than 100 of your own tweets. Engage with these people first.
 
 **2. Ride today's trending wave**
 
-SocialClaw pulled real-time trending data:
+SocialClaw pulls real-time trending data with actual view counts:
 
-| Trend | Views | Your angle |
-|-------|-------|-----------|
-| Anthropic | 115,983,616 | "We just built a marketing intelligence agent on Claude Code — here's what we learned" |
-| Claude Code | 44,825,583 | SocialClaw literally runs on Claude Code. Show the workflow, share the output. |
-| Bitcoin | 27,136,645 | Your product uses USDC micropayments. Post about the crypto-native agent economy. |
+```
+  TRENDING NOW
+    Anthropic          158 articles   115,983,616 views
+    Claude Code         29 articles    44,825,583 views
+    Bitcoin             34 articles    27,136,645 views
+```
 
-> Don't create trends. Ride them. SocialClaw catches them in real time.
+> Find the trend that overlaps with what you're building. Post your angle within 2 hours. That's how you ride a 100M+ view wave.
 
 **3. Join the conversations that matter**
 
-SocialClaw found @solana_daily already talking about BlockRun:
+SocialClaw finds high-engagement conversations in your space with direct links:
 
 ```
-@solana_daily (major Solana account):
-  "Solana Projects to Watch this Week: @BlockRunAI..."
-  → Reply with specific data: "We just shipped SocialClaw — 7 marketing
-    workflows, $0.08 per report, all paid with USDC on Solana"
+  @major_account (45K followers) — 15 likes, climbing
+    "Projects to Watch this Week: @yourproject..."
+    https://x.com/major_account/status/123456789
+    → Reply with specific data. "We just shipped X — 7 features, Y metric." Numbers get retweeted.
 ```
 
-> Replies with numbers get retweeted. "We shipped X" > "Great list!"
+> "We shipped X with Y result" > "Great list!" Every time.
 
-### What to do this week
+### Your weekly growth routine
 
 | Day | Action | Tool |
 |-----|--------|------|
-| Every morning | Check mentions, reply fast | `socialclaw brief @bc1beat` |
-| Before posting | Find trending angle | `socialclaw radar "AI agents"` |
-| Mon & Thu | Discover new KOLs to engage | `socialclaw scout "x402 crypto"` |
-| Wednesday | Analyze a bigger account in your space | `socialclaw insight @targetaccount` |
-| Friday | Compare your growth vs last week | `socialclaw compare @bc1beat @similaraccount` |
+| Every morning | Check mentions, reply fast | `socialclaw brief @yourhandle` |
+| Before posting | Find trending angle | `socialclaw radar "your niche"` |
+| Mon & Thu | Discover new KOLs to engage | `socialclaw scout "your topic"` |
+| Wednesday | Study a bigger account in your space | `socialclaw insight @targetaccount` |
+| Friday | Benchmark your growth | `socialclaw compare @you @similaraccount` |
 
 ---
 
