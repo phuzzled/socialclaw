@@ -244,6 +244,39 @@ Wallet auto-detected. Base or Solana USDC. No config needed.
 
 ---
 
+## From the BlockRun Ecosystem
+
+<table>
+<tr>
+<td width="50%">
+
+### 🦞 SocialClaw
+**X/Twitter Marketing Intelligence**
+
+You're here. Grow to 5M+ views in 3 months with trend detection, audience insights, and engagement optimization.
+
+`pip install blockrun-llm[solana]`
+
+</td>
+<td width="50%">
+
+### ⚡ [ClawRouter](https://github.com/BlockRunAI/ClawRouter)
+**Smart LLM Router — 92% Cost Savings**
+
+Route every AI request to the right model at the right price. 41+ models, <1ms local routing, auto-switches between GPT, Claude, Gemini, DeepSeek based on task.
+
+`curl -fsSL https://blockrun.ai/ClawRouter-update | bash`
+
+[![GitHub stars](https://img.shields.io/github/stars/BlockRunAI/ClawRouter?style=flat-square)](https://github.com/BlockRunAI/ClawRouter)
+
+</td>
+</tr>
+</table>
+
+> **SocialClaw + ClawRouter together:** SocialClaw uses ClawRouter under the hood to route your LLM requests to the cheapest model that can do the job. Your marketing intelligence reports cost less because ClawRouter picks DeepSeek for simple tasks and GPT-5 only when needed.
+
+---
+
 <div align="center">
 
 **[blockrun.ai](https://blockrun.ai)** · **[AttentionVC](https://attentionvc.com)** · **[x402 Protocol](https://x402.org)** · **[hello@blockrun.ai](mailto:hello@blockrun.ai)**
