@@ -276,6 +276,9 @@ def insight(username: str):
     print("\n  Fetching profile...")
     info = _api(client, "/v1/x/users/info", {"username": username})
     d = info.get("data", {})
+    # Handle nested data (API returns {"data": {"data": {...}}})
+    if isinstance(d.get("data"), dict):
+        d = d["data"]
 
     followers = d.get("followers") or d.get("followersCount") or 0
     following = d.get("following") or d.get("followingCount") or 0
@@ -420,6 +423,8 @@ def compare(user1: str, user2: str):
     print("\n  Fetching profiles...")
     info1 = _api(client, "/v1/x/users/info", {"username": user1}).get("data", {})
     info2 = _api(client, "/v1/x/users/info", {"username": user2}).get("data", {})
+    if isinstance(info1.get("data"), dict): info1 = info1["data"]
+    if isinstance(info2.get("data"), dict): info2 = info2["data"]
 
     def _get(d, *keys):
         for k in keys:
@@ -620,6 +625,7 @@ def check(username: str):
     print("\n  Fetching profile...")
     info = _api(client, "/v1/x/users/info", {"username": username})
     d = info.get("data", {})
+    if isinstance(d.get("data"), dict): d = d["data"]
 
     followers = d.get("followers") or d.get("followersCount") or 0
     print(f"  Followers: {followers:,}")
@@ -845,6 +851,7 @@ def analytics(handle: str):
     print("\n  Fetching profile...")
     info = _api(client, "/v1/x/users/info", {"username": handle})
     d = info.get("data", {})
+    if isinstance(d.get("data"), dict): d = d["data"]
 
     followers = d.get("followers") or d.get("followersCount") or 0
     following = d.get("following") or d.get("followingCount") or 0
