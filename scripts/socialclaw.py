@@ -38,17 +38,6 @@ except ImportError:
 
 def _get_client():
     """Get a client using any available wallet (Solana or Base)."""
-    # Prefer local dev copy of blockrun-llm (has latest wallet scan)
-    local_llm = os.path.expanduser("~/blockrun-llm")
-    if os.path.isdir(local_llm):
-        if local_llm in sys.path:
-            sys.path.remove(local_llm)
-        sys.path.insert(0, local_llm)
-        # Force reimport from local
-        for mod in list(sys.modules):
-            if mod.startswith("blockrun_llm"):
-                del sys.modules[mod]
-
     from blockrun_llm.solana_wallet import load_solana_wallet
     from blockrun_llm.wallet import load_wallet
 
@@ -74,16 +63,50 @@ def _get_client():
     return client
 
 
+DATA_DIR = os.path.expanduser("~/.blockrun/data")
+
+
+def _save_local(endpoint: str, body: dict, result: dict):
+    """Save every paid API response locally — you paid for it, keep it."""
+    from datetime import datetime
+
+    os.makedirs(DATA_DIR, exist_ok=True)
+
+    ts = datetime.now().strftime("%Y%m%d_%H%M%S")
+    # Clean endpoint for filename: /v1/x/trending → x_trending
+    slug = endpoint.strip("/").replace("v1/x/", "").replace("v1/", "").replace("/", "_")
+
+    # Add context from body (username, query, etc.)
+    ctx = body.get("username") or body.get("query") or body.get("handle") or ""
+    ctx = ctx.replace(" ", "-").replace("@", "")[:30]
+    if ctx:
+        slug = f"{slug}_{ctx}"
+
+    filename = f"{ts}_{slug}.json"
+    filepath = os.path.join(DATA_DIR, filename)
+
+    with open(filepath, "w") as f:
+        json.dump({"endpoint": endpoint, "request": body, "response": result,
+                    "timestamp": ts}, f, indent=2, ensure_ascii=False)
+
+    return filepath
+
+
 def _api(client, endpoint: str, body: dict) -> Dict[str, Any]:
-    """Make a paid API call with retry on 502."""
+    """Make a paid API call with retry on 502. Saves result locally."""
     try:
-        return client._request_with_payment_raw(endpoint, body)
+        result = client._request_with_payment_raw(endpoint, body)
     except Exception as e:
         if "502" in str(e):
             import time
             time.sleep(2)
-            return client._request_with_payment_raw(endpoint, body)
-        raise
+            result = client._request_with_payment_raw(endpoint, body)
+        else:
+            raise
+
+    # Save locally — you paid for this data
+    _save_local(endpoint, body, result)
+    return result
 
 
 # ── Workflow 1: Insight Report ──────────────────────────────────
