@@ -189,11 +189,7 @@ bash install.sh                # Base chain (default)
 CHAIN=solana bash install.sh   # Solana chain
 ```
 
-**Python SDK only**:
-```bash
-pip install blockrun-llm            # Base
-pip install blockrun-llm[solana]    # Solana
-```
+This installs the skill, the SDK, and auto-detects your wallet. One command, done.
 
 Wallet auto-detected from `~/.*/*wallet*.json`. Fund with USDC. No API keys, no config, no signup.
 
@@ -270,7 +266,7 @@ Every paid response is saved as JSON in `~/.blockrun/data/`. You paid for it —
 
 You're here. One function call = one intelligence report. $0.08, not $49/month.
 
-`pip install blockrun-llm[solana]`
+`bash install.sh` or `CHAIN=solana bash install.sh`
 
 </td>
 <td width="50%">
