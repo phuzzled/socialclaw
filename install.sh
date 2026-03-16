@@ -3,22 +3,20 @@
 # One command to install SocialClaw skill + SDK.
 #
 # Usage:
-#   bash install.sh                           # takeover mode, Base chain
-#   CHAIN=solana bash install.sh              # takeover mode, Solana chain
-#   MODE=safe bash install.sh                 # install SocialClaw only
+#   bash install.sh                           # install SocialClaw (safe mode)
+#   MODE=takeover bash install.sh             # also replace sibling x402 skills
 #   MODE=force bash install.sh                # overwrite every sibling skill
 #   bash install.sh --dry-run                 # preview changes
 #   bash install.sh --uninstall               # restore backups and remove launcher
 
 set -euo pipefail
 
-CHAIN="${CHAIN:-base}"
-MODE="${MODE:-takeover}"
+MODE="${MODE:-safe}"
 DRY_RUN=false
 UNINSTALL=false
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd -P)"
-BLOCKRUN_DIR="$HOME/.blockrun"
+BLOCKRUN_DIR="$HOME/.socialclaw"
 BACKUP_DIR="$BLOCKRUN_DIR/backups/socialclaw"
 MANIFEST_FILE="$BLOCKRUN_DIR/managed-skills.json"
 LAUNCHER_DIR="${XDG_BIN_HOME:-$HOME/.local/bin}"
@@ -37,13 +35,22 @@ Options:
   --uninstall     Restore backed-up SKILL.md files and remove the socialclaw launcher.
   --mode MODE     safe | takeover | force
                   safe     = install SocialClaw only
-                  takeover = replace x402/micropayment sibling skills with a BlockRun wrapper
-                  force    = replace every sibling skill with the BlockRun wrapper
+                  takeover = replace x402/micropayment sibling skills with a wrapper
+                  force    = replace every sibling skill with the wrapper
   -h, --help      Show this help.
 
 Environment:
-  CHAIN=base|solana   Select the wallet chain. Default: base
-  MODE=...            Same as --mode. Default: takeover
+  MODE=...            Same as --mode. Default: safe
+  X_API_BEARER_TOKEN  Your X (Twitter) API Bearer Token (can also be set after install)
+
+Authentication:
+  SocialClaw uses the official X API v2. You need an X Developer account and
+  Bearer Token. Get yours at: https://developer.twitter.com/
+
+  Set your token before running SocialClaw:
+    export X_API_BEARER_TOKEN="your_bearer_token_here"
+  Or save it permanently:
+    mkdir -p ~/.socialclaw && echo "your_bearer_token_here" > ~/.socialclaw/api_key
 EOF
 }
 
@@ -325,7 +332,7 @@ write_manifest() {
     fi
 
     mkdir -p "$BLOCKRUN_DIR"
-    "$PYTHON" - "$records_file" "$MANIFEST_FILE" "$MODE" "$CHAIN" "$LAUNCHER_PATH" "${SKILLS_DIRS[@]}" <<'PYEOF'
+    "$PYTHON" - "$records_file" "$MANIFEST_FILE" "$MODE" "$LAUNCHER_PATH" "${SKILLS_DIRS[@]}" <<'PYEOF'
 import json
 import sys
 from datetime import datetime, timezone
@@ -334,9 +341,8 @@ from pathlib import Path
 records_path = Path(sys.argv[1])
 manifest_path = Path(sys.argv[2])
 mode = sys.argv[3]
-chain = sys.argv[4]
-launcher_path = sys.argv[5]
-skill_dirs = sys.argv[6:]
+launcher_path = sys.argv[4]
+skill_dirs = sys.argv[5:]
 
 managed = []
 if records_path.exists():
@@ -356,7 +362,6 @@ if records_path.exists():
 payload = {
     "managed_by": "socialclaw",
     "updated_at": datetime.now(timezone.utc).isoformat(),
-    "chain": chain,
     "mode": mode,
     "launcher_path": launcher_path,
     "socialclaw_dirs": skill_dirs,
@@ -368,13 +373,9 @@ PYEOF
 }
 
 install_sdk() {
-    if [ "$CHAIN" = "solana" ]; then
-        PKG="blockrun-llm[solana]>=0.8.0"
-    else
-        PKG="blockrun-llm>=0.8.0"
-    fi
+    PKG="requests>=2.28.0"
 
-    log "Installing Python SDK..."
+    log "Installing Python dependencies..."
 
     INSTALLED=false
     PIP_LOG="$(mktemp)"
@@ -408,73 +409,48 @@ install_sdk() {
     rm -f "$PIP_LOG"
 }
 
-save_chain() {
+setup_config_dir() {
     run mkdir -p "$BLOCKRUN_DIR"
     if [ "$DRY_RUN" = true ]; then
-        log "[dry-run] write $BLOCKRUN_DIR/.chain = $CHAIN"
+        log "[dry-run] create config dir $BLOCKRUN_DIR"
         return 0
     fi
-    printf '%s\n' "$CHAIN" > "$BLOCKRUN_DIR/.chain"
 }
 
 verify_install() {
-    if [ "$CHAIN" = "solana" ]; then
-        PKG="blockrun-llm[solana]>=0.8.0"
-    else
-        PKG="blockrun-llm>=0.8.0"
-    fi
+    if "$PYTHON" -c "import requests; print(f'requests v{requests.__version__} installed')" 2>/dev/null; then
+        log ""
+        log "SocialClaw installed!"
+        log ""
+        log "Next step — set your X API Bearer Token:"
+        log ""
+        log "  export X_API_BEARER_TOKEN=\"your_bearer_token_here\""
+        log ""
+        log "Or save it permanently:"
+        log ""
+        log "  mkdir -p ~/.socialclaw && echo \"your_bearer_token\" > ~/.socialclaw/api_key"
+        log ""
+        log "Get your Bearer Token at: https://developer.twitter.com/"
+        log ""
 
-    if "$PYTHON" -c "import blockrun_llm; print(f'SDK v{blockrun_llm.__version__} installed')" 2>/dev/null; then
-        "$PYTHON" - "$CHAIN" <<'PYEOF'
-import sys
+        # Check if already configured
+        if [ -n "${X_API_BEARER_TOKEN:-}" ]; then
+            log "X_API_BEARER_TOKEN is already set in your environment."
+        elif [ -f "$HOME/.socialclaw/api_key" ]; then
+            log "API key found at ~/.socialclaw/api_key"
+        fi
 
-chain = sys.argv[1] if len(sys.argv) > 1 else "base"
-
-if chain == "solana":
-    try:
-        from blockrun_llm import setup_agent_solana_wallet
-
-        client = setup_agent_solana_wallet(silent=True)
-        addr = client.get_wallet_address()
-        balance = client.get_balance()
-        chain_label = "Solana"
-        fund_msg = "Fund wallet: Send USDC on Solana to the address above"
-    except ImportError as e:
-        import blockrun_llm
-
-        version = getattr(blockrun_llm, "__version__", "unknown")
-        print(f"\nERROR: Solana extras missing (installed: v{version})")
-        print(f"Import error: {e}")
-        print('Fix: pip install --no-cache-dir "blockrun-llm[solana]>=0.8.0"')
-        sys.exit(1)
-else:
-    from blockrun_llm import setup_agent_wallet
-
-    client = setup_agent_wallet(silent=True)
-    addr = client.get_wallet_address()
-    balance = client.get_balance()
-    chain_label = "Base"
-    fund_msg = "Fund wallet: Send USDC on Base to the address above"
-
-print()
-print(f"SocialClaw installed! (Chain: {chain_label})")
-print(f"Wallet: {addr}")
-print(f"Balance: ${balance:.2f} USDC")
-if balance == 0:
-    print()
-    print(fund_msg)
-print()
-print('Try: "socialclaw radar \\"AI agents\\""')
-PYEOF
+        log ""
+        log "Try: \"socialclaw radar \\\"AI agents\\\"\""
     else
         log ""
-        log "SocialClaw skill installed and chain preference saved."
+        log "SocialClaw skill installed."
         log ""
-        log "NOTE: blockrun-llm was installed but $PYTHON can't find it."
+        log "NOTE: 'requests' was installed but $PYTHON can't find it."
         log "This usually means you're using a different virtual environment."
         log "Run this in your active environment:"
         log ""
-        log "  pip install --no-cache-dir \"$PKG\""
+        log "  pip install --no-cache-dir \"requests>=2.28.0\""
         log ""
     fi
 }
@@ -511,14 +487,6 @@ while [ $# -gt 0 ]; do
     shift
 done
 
-case "$CHAIN" in
-    base|solana) ;;
-    *)
-        log "ERROR: CHAIN must be 'base' or 'solana' (got '$CHAIN')."
-        exit 1
-        ;;
-esac
-
 case "$MODE" in
     safe|takeover|force) ;;
     *)
@@ -527,7 +495,7 @@ case "$MODE" in
         ;;
 esac
 
-log "Installing SocialClaw (chain: $CHAIN, mode: $MODE)..."
+log "Installing SocialClaw (mode: $MODE)..."
 detect_python
 
 if [ "$UNINSTALL" = true ]; then
@@ -551,5 +519,5 @@ if [ "$DRY_RUN" = true ]; then
 fi
 
 install_sdk
-save_chain
+setup_config_dir
 verify_install

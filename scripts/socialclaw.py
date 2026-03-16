@@ -2,11 +2,11 @@
 """
 SocialClaw v3 — X/Twitter Marketing Intelligence
 
-Structured BlockRun APIs first, Grok AI for enhancement. All via x402 micropayments.
+Official X API v2 for structured data. Optional OpenAI for AI analysis.
 
 Data layer:
-  - Structured APIs (primary): trending, user info, search, mentions, followers
-  - Grok Live Search (enhancement): AI-powered analysis, fallback on 502s
+  - X API v2 (primary): user info, search, mentions, followers, tweets
+  - OpenAI (optional, set OPENAI_API_KEY): AI-powered analysis
 
 Workflows:
   1. insight @username     — deep-dive account analysis
@@ -34,33 +34,367 @@ from typing import Any, Dict, List, Optional
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 try:
-    from scripts.utils.config import get_chain, get_wallet_source, get_private_key
+    from scripts.utils.config import get_api_key, get_openai_key
 except ImportError:
-    from utils.config import get_chain, get_wallet_source, get_private_key
+    from utils.config import get_api_key, get_openai_key
 
 
-def _install_pkg_for_chain(chain: str) -> str:
-    return "blockrun-llm[solana]>=0.8.0" if chain == "solana" else "blockrun-llm>=0.8.0"
-
-
-def _ensure_deps(chain: str):
-    """Install blockrun-llm only when a real command is executed."""
-    pkg = _install_pkg_for_chain(chain)
-
+def _ensure_deps():
+    """Ensure requests library is available."""
     try:
-        import blockrun_llm  # noqa: F401
-
-        if chain == "solana":
-            from blockrun_llm import SolanaLLMClient  # noqa: F401
-        else:
-            from blockrun_llm import LLMClient  # noqa: F401
-        return
+        import requests  # noqa: F401
     except ImportError:
-        print(f"  Installing {pkg}...")
+        print("  Installing requests...")
         subprocess.check_call(
-            [sys.executable, "-m", "pip", "install", "-q", pkg],
+            [sys.executable, "-m", "pip", "install", "-q", "requests"],
             stdout=subprocess.DEVNULL,
         )
+
+
+# ── X API v2 Client ─────────────────────────────────────────────
+
+class XClient:
+    """Thin wrapper around the X (Twitter) API v2."""
+
+    BASE = "https://api.twitter.com/2"
+
+    def __init__(self, bearer_token: str, timeout: float = 30.0):
+        import requests
+        self._session = requests.Session()
+        self._session.headers["Authorization"] = f"Bearer {bearer_token}"
+        self._timeout = timeout
+        self._calls = 0
+
+    def get(self, path: str, **params) -> dict:
+        self._calls += 1
+        url = f"{self.BASE}{path}"
+        try:
+            r = self._session.get(
+                url,
+                params={k: v for k, v in params.items() if v is not None},
+                timeout=self._timeout,
+            )
+            r.raise_for_status()
+        except Exception as exc:
+            import requests as _req
+            if isinstance(exc, _req.exceptions.HTTPError):
+                status = exc.response.status_code if exc.response is not None else "?"
+                if status == 401:
+                    raise RuntimeError(
+                        f"X API auth failed (401) — check your X_API_BEARER_TOKEN"
+                    ) from exc
+                if status == 403:
+                    raise RuntimeError(
+                        f"X API access denied (403) for {path} — your token may lack required permissions"
+                    ) from exc
+                if status == 429:
+                    raise RuntimeError(
+                        f"X API rate limit reached (429) — wait before retrying"
+                    ) from exc
+            raise
+        return r.json()
+
+    @property
+    def calls(self) -> int:
+        return self._calls
+
+    def close(self):
+        self._session.close()
+
+
+# ── Data Normalization ───────────────────────────────────────────
+
+def _norm_user(u: dict) -> dict:
+    """Normalize an X API v2 user object to the internal format."""
+    m = u.get("public_metrics", {})
+    return {
+        "userName": u.get("username", ""),
+        "name": u.get("name", ""),
+        "description": u.get("description", ""),
+        "followers": m.get("followers_count", 0),
+        "followersCount": m.get("followers_count", 0),
+        "following": m.get("following_count", 0),
+        "followingCount": m.get("following_count", 0),
+        "statusesCount": m.get("tweet_count", 0),
+        "tweetsCount": m.get("tweet_count", 0),
+        "isBlueVerified": u.get("verified", False),
+        "id": u.get("id", ""),
+        # Keep legacy followers_count key used in follower-list display
+        "followers_count": m.get("followers_count", 0),
+    }
+
+
+def _norm_tweet(tw: dict, users_by_id: dict) -> dict:
+    """Normalize an X API v2 tweet object to the internal format."""
+    m = tw.get("public_metrics", {})
+    aid = tw.get("author_id", "")
+    raw_author = users_by_id.get(aid, {"id": aid, "username": "?", "name": "?"})
+    return {
+        "id": tw.get("id", ""),
+        "text": tw.get("text", ""),
+        "author": _norm_user(raw_author),
+        "likeCount": m.get("like_count", 0),
+        "retweetCount": m.get("retweet_count", 0),
+        "replyCount": m.get("reply_count", 0),
+        "viewCount": m.get("impression_count", 0),
+        "createdAt": tw.get("created_at", ""),
+    }
+
+
+def _extract_users(data: dict) -> dict:
+    """Build {user_id: raw_user_dict} from X API v2 includes."""
+    return {u["id"]: u for u in data.get("includes", {}).get("users", [])}
+
+
+# ── X API v2 Endpoint Functions ─────────────────────────────────
+
+_TWEET_FIELDS = "public_metrics,created_at,author_id,conversation_id"
+_USER_FIELDS = "public_metrics,description,username,name,verified"
+_EXPANSIONS = "author_id"
+
+
+def _x_user_info(client: XClient, username: str) -> dict:
+    """GET /2/users/by/username/{username}"""
+    try:
+        data = client.get(
+            f"/users/by/username/{username}",
+            **{"user.fields": _USER_FIELDS},
+        )
+        return {"data": _norm_user(data.get("data", {}))}
+    except Exception as e:
+        print(f"  Warning: Could not fetch user info for @{username}: {e}")
+        return {}
+
+
+def _x_user_id(client: XClient, username: str) -> Optional[str]:
+    """Resolve a username to its numeric user ID."""
+    info = _x_user_info(client, username)
+    return info.get("data", {}).get("id")
+
+
+def _x_user_mentions(client: XClient, username: str) -> dict:
+    """GET /2/users/{id}/mentions"""
+    user_id = _x_user_id(client, username)
+    if not user_id:
+        return {"tweets": []}
+    try:
+        data = client.get(
+            f"/users/{user_id}/mentions",
+            **{
+                "tweet.fields": _TWEET_FIELDS,
+                "expansions": _EXPANSIONS,
+                "user.fields": _USER_FIELDS,
+                "max_results": 100,
+            },
+        )
+        users = _extract_users(data)
+        tweets = [_norm_tweet(tw, users) for tw in (data.get("data") or [])]
+        return {"tweets": tweets}
+    except Exception as e:
+        print(f"  Warning: Could not fetch mentions for @{username}: {e}")
+        return {"tweets": []}
+
+
+def _x_user_tweets(client: XClient, username: str) -> dict:
+    """GET /2/users/{id}/tweets"""
+    user_id = _x_user_id(client, username)
+    if not user_id:
+        return {"tweets": []}
+    try:
+        data = client.get(
+            f"/users/{user_id}/tweets",
+            **{
+                "tweet.fields": "public_metrics,created_at",
+                "max_results": 20,
+            },
+        )
+        user_data = _x_user_info(client, username).get("data", {})
+        tweets = []
+        for tw in (data.get("data") or []):
+            m = tw.get("public_metrics", {})
+            tweets.append({
+                "id": tw.get("id", ""),
+                "text": tw.get("text", ""),
+                "author": user_data,
+                "likeCount": m.get("like_count", 0),
+                "retweetCount": m.get("retweet_count", 0),
+                "replyCount": m.get("reply_count", 0),
+                "viewCount": m.get("impression_count", 0),
+                "createdAt": tw.get("created_at", ""),
+            })
+        return {"tweets": tweets}
+    except Exception as e:
+        print(f"  Warning: Could not fetch tweets for @{username}: {e}")
+        return {"tweets": []}
+
+
+def _x_user_followers(client: XClient, username: str) -> dict:
+    """GET /2/users/{id}/followers"""
+    user_id = _x_user_id(client, username)
+    if not user_id:
+        return {"followers": []}
+    try:
+        data = client.get(
+            f"/users/{user_id}/followers",
+            **{
+                "user.fields": _USER_FIELDS,
+                "max_results": 1000,
+            },
+        )
+        followers = [_norm_user(u) for u in (data.get("data") or [])]
+        return {"followers": followers}
+    except Exception as e:
+        print(f"  Warning: Could not fetch followers for @{username}: {e}")
+        return {"followers": []}
+
+
+def _x_search(client: XClient, query: str, query_type: str = "Latest") -> dict:
+    """GET /2/tweets/search/recent"""
+    try:
+        sort_order = "recency" if query_type == "Latest" else "relevancy"
+        data = client.get(
+            "/tweets/search/recent",
+            query=query,
+            **{
+                "tweet.fields": _TWEET_FIELDS,
+                "expansions": _EXPANSIONS,
+                "user.fields": _USER_FIELDS,
+                "max_results": 100,
+                "sort_order": sort_order,
+            },
+        )
+        users = _extract_users(data)
+        tweets = [_norm_tweet(tw, users) for tw in (data.get("data") or [])]
+        return {"tweets": tweets}
+    except Exception as e:
+        print(f"  Warning: Could not search tweets: {e}")
+        return {"tweets": []}
+
+
+def _x_trending(_client: XClient) -> dict:
+    """X API v2 trending is not available in standard access tiers."""
+    print("  Note: Trending topics require X API Pro tier or higher.")
+    return {"data": {"topics": []}}
+
+
+def _x_articles_rising(_client: XClient) -> dict:
+    """Rising articles endpoint is not available in X API v2."""
+    return {"data": {"articles": []}}
+
+
+def _x_tweet_lookup(client: XClient, tweet_ids: list) -> dict:
+    """GET /2/tweets/{id}"""
+    if not tweet_ids:
+        return {"tweets": []}
+    tweet_id = tweet_ids[0] if isinstance(tweet_ids, list) else tweet_ids
+    try:
+        data = client.get(
+            f"/tweets/{tweet_id}",
+            **{
+                "tweet.fields": _TWEET_FIELDS,
+                "expansions": _EXPANSIONS,
+                "user.fields": _USER_FIELDS,
+            },
+        )
+        users = _extract_users(data)
+        tw_data = data.get("data", {})
+        tweets = [_norm_tweet(tw_data, users)] if tw_data else []
+        return {"tweets": tweets}
+    except Exception as e:
+        print(f"  Warning: Could not fetch tweet {tweet_id}: {e}")
+        return {"tweets": []}
+
+
+def _x_tweet_replies(client: XClient, tweet_id: str) -> dict:
+    """Search for replies to a tweet via conversation_id."""
+    try:
+        data = client.get(
+            "/tweets/search/recent",
+            query=f"conversation_id:{tweet_id}",
+            **{
+                "tweet.fields": _TWEET_FIELDS,
+                "expansions": _EXPANSIONS,
+                "user.fields": _USER_FIELDS,
+                "max_results": 100,
+            },
+        )
+        users = _extract_users(data)
+        tweets = [_norm_tweet(tw, users) for tw in (data.get("data") or [])]
+        return {"tweets": tweets}
+    except Exception as e:
+        print(f"  Warning: Could not fetch replies for tweet {tweet_id}: {e}")
+        return {"tweets": []}
+
+
+def _x_tweet_thread(client: XClient, tweet_id: str) -> dict:
+    """Get a tweet thread by fetching the conversation."""
+    return _x_tweet_replies(client, tweet_id)
+
+
+def _x_author_analytics(client: XClient, handle: str) -> dict:
+    """Compute basic author analytics from profile + recent tweets."""
+    try:
+        user_data = _x_user_info(client, handle).get("data", {})
+        recent = _x_user_tweets(client, handle)
+        tweets = recent.get("tweets", [])
+        n = len(tweets) or 1
+        total_likes = sum(tw.get("likeCount", 0) for tw in tweets)
+        total_rts = sum(tw.get("retweetCount", 0) for tw in tweets)
+        total_replies = sum(tw.get("replyCount", 0) for tw in tweets)
+        return {
+            "data": {
+                "followers": user_data.get("followers", 0),
+                "following": user_data.get("following", 0),
+                "totalTweets": user_data.get("tweetsCount", 0),
+                "recentTweetsSampled": len(tweets),
+                "avgLikesPerTweet": round(total_likes / n, 1),
+                "avgRetweetsPerTweet": round(total_rts / n, 1),
+                "avgRepliesPerTweet": round(total_replies / n, 1),
+                "totalEngagement": total_likes + total_rts + total_replies,
+            }
+        }
+    except Exception as e:
+        print(f"  Warning: Could not compute analytics for @{handle}: {e}")
+        return {}
+
+
+# ── API Dispatcher ───────────────────────────────────────────────
+
+def _api(client: XClient, endpoint: str, body: dict) -> dict:
+    """
+    Route old-style endpoint calls to the appropriate X API v2 function.
+
+    This dispatcher preserves the existing workflow code structure while
+    mapping to the official X API v2 under the hood.
+    """
+    username = body.get("username") or body.get("handle", "")
+
+    if endpoint == "/v1/x/users/info":
+        return _x_user_info(client, username)
+    elif endpoint == "/v1/x/users/mentions":
+        return _x_user_mentions(client, username)
+    elif endpoint == "/v1/x/users/followers":
+        return _x_user_followers(client, username)
+    elif endpoint == "/v1/x/users/tweets":
+        return _x_user_tweets(client, username)
+    elif endpoint == "/v1/x/trending":
+        return _x_trending(client)
+    elif endpoint == "/v1/x/articles/rising":
+        return _x_articles_rising(client)
+    elif endpoint == "/v1/x/search":
+        return _x_search(client, body.get("query", ""), body.get("queryType", "Latest"))
+    elif endpoint == "/v1/x/tweets/lookup":
+        return _x_tweet_lookup(client, body.get("tweetIds", []))
+    elif endpoint == "/v1/x/tweets/replies":
+        return _x_tweet_replies(client, body.get("tweetId", ""))
+    elif endpoint == "/v1/x/tweets/thread":
+        return _x_tweet_thread(client, body.get("tweetId", ""))
+    elif endpoint == "/v1/x/authors/analytics":
+        return _x_author_analytics(client, username)
+    else:
+        print(f"  Warning: Unknown endpoint {endpoint}")
+        return {}
+
 
 
 def _unwrap_data(payload: Dict[str, Any]) -> Dict[str, Any]:
@@ -88,45 +422,24 @@ def _display_name(entity: dict) -> str:
     return entity.get("name") or entity.get("displayName") or entity.get("userName") or "?"
 
 
-def _get_client():
-    """Get a client that respects the selected chain preference."""
-    chain = get_chain()
-    private_key = get_private_key()
-    wallet_source = get_wallet_source()
-
-    if not private_key:
-        if chain == "solana":
-            print("  Error: No Solana wallet found.")
-            print("  Place solana-wallet.json in ~/.<provider>/ or set SOLANA_WALLET_KEY.")
-        else:
-            print("  Error: No Base wallet found.")
-            print("  Place wallet.json in ~/.<provider>/ or set BLOCKRUN_WALLET_KEY.")
-        print("  Chain preference comes from ~/.blockrun/.chain.")
+def _get_client() -> XClient:
+    """Get an X API v2 client using the configured Bearer Token."""
+    api_key = get_api_key()
+    if not api_key:
+        print("  Error: No X API Bearer Token found.")
+        print("  Set the X_API_BEARER_TOKEN environment variable.")
+        print("  Or save your token to ~/.socialclaw/api_key")
+        print()
+        print("  Get your Bearer Token at: https://developer.twitter.com/")
         sys.exit(1)
-
-    if chain == "solana":
-        from blockrun_llm import SolanaLLMClient
-
-        client = SolanaLLMClient(private_key=private_key)
-    else:
-        from blockrun_llm import LLMClient
-
-        client = LLMClient(private_key=private_key)
-
-    addr = client.get_wallet_address()
-    source_hint = ""
-    if wallet_source and wallet_source.get("source"):
-        source_hint = f" from {os.path.basename(wallet_source['source'])}"
-    print(f"  Wallet: {addr[:6]}...{addr[-4:]} ({chain}{source_hint})")
-    print(f"  Balance: ${client.get_balance():.2f}")
-    return client
+    return XClient(api_key)
 
 
-DATA_DIR = os.path.expanduser("~/.blockrun/data")
+DATA_DIR = os.path.expanduser("~/.socialclaw/data")
 
 
 def _save_local(endpoint: str, body: dict, result):
-    """Save every paid API response locally — you paid for it, keep it."""
+    """Save API response locally for future reference."""
     os.makedirs(DATA_DIR, exist_ok=True)
 
     ts = datetime.now().strftime("%Y%m%d_%H%M%S")
@@ -149,123 +462,70 @@ def _save_local(endpoint: str, body: dict, result):
     return filepath
 
 
-# ── Data Layer ─────────────────────────────────────────────────
+def _ai_analyze(prompt: str, system: str = None) -> Optional[str]:
+    """
+    Optional AI analysis using OpenAI if OPENAI_API_KEY is set.
 
-def _api(client, endpoint: str, body: dict) -> Dict[str, Any]:
-    """Make a paid structured API call with retry on 502."""
+    Returns the AI response string, or None if no key is configured.
+    """
+    openai_key = get_openai_key()
+    if not openai_key:
+        return None
     try:
-        result = client._request_with_payment_raw(endpoint, body)
-    except Exception as e:
-        if "502" in str(e):
-            import time
-            time.sleep(2)
-            try:
-                result = client._request_with_payment_raw(endpoint, body)
-            except Exception:
-                return {}  # Return empty — caller should fallback to Grok
-        else:
-            raise
-
-    _save_local(endpoint, body, result)
-    return result
-
-
-def _grok_search(client, query: str, *, x_only: bool = True,
-                 min_likes: int = 0, max_results: int = 10,
-                 system: str = None, from_date: str = None) -> str:
-    """
-    Search X/Twitter via Grok Live Search.
-    Reliable fallback when /v1/x/search 502s.
-    Returns Grok's natural language analysis with citations.
-    """
-    sources = []
-    if x_only:
-        x_source = {"type": "x"}
-        if min_likes > 0:
-            x_source["post_favorite_count"] = min_likes
-        sources.append(x_source)
-    else:
-        sources.append({"type": "x"})
-        sources.append({"type": "web"})
-
-    search_params = {
-        "mode": "on",
-        "sources": sources,
-        "return_citations": True,
-        "max_search_results": max_results,
-    }
-    if from_date:
-        search_params["from_date"] = from_date
-
-    default_system = (
-        "You are a Twitter/X data analyst. "
-        "For every tweet you mention, ALWAYS include the direct URL (https://x.com/username/status/id). "
-        "Include engagement metrics (likes, retweets, views) when available. "
-        "Be concise and factual."
-    )
-
-    sys_msg = system or default_system
-    messages = [
-        {"role": "system", "content": sys_msg},
-        {"role": "user", "content": query},
-    ]
-
-    result = client.chat_completion(
-        "xai/grok-3",
-        messages,
-        max_tokens=2048,
-        search_parameters=search_params,
-    )
-    response = result.choices[0].message.content or ""
-
-    _save_local("grok_search", {"query": query, "x_only": x_only}, {"text": response})
-    return response
-
-
-def _smart_search(client, query: str, query_type: str = "Latest") -> Dict[str, Any]:
-    """
-    Try structured /v1/x/search first. If 502, fallback to Grok Live Search.
-    Returns structured data when possible, Grok analysis as fallback.
-    """
-    try:
-        result = client._request_with_payment_raw(
-            "/v1/x/search", {"query": query, "queryType": query_type}
+        import requests as _req
+        messages = []
+        if system:
+            messages.append({"role": "system", "content": system})
+        messages.append({"role": "user", "content": prompt})
+        r = _req.post(
+            "https://api.openai.com/v1/chat/completions",
+            json={"model": "gpt-4o-mini", "messages": messages, "max_tokens": 3000},
+            headers={"Authorization": f"Bearer {openai_key}"},
+            timeout=60,
         )
-        _save_local("/v1/x/search", {"query": query, "queryType": query_type}, result)
-        return {"source": "api", "data": result}
+        r.raise_for_status()
+        return r.json()["choices"][0]["message"]["content"]
     except Exception as e:
-        if "502" in str(e) or "500" in str(e):
-            print(f"    (API 502 → switching to Grok Live Search)")
-            grok_result = _grok_search(
-                client, f"Find the {query_type.lower()} tweets about: {query}. "
-                f"List each tweet with: author handle, text, likes, retweets, and direct URL.",
-                min_likes=5 if query_type == "Top" else 0,
-            )
-            return {"source": "grok", "data": grok_result}
-        raise
+        print(f"  Note: AI analysis unavailable: {e}")
+        return None
 
 
-def _smart_user_tweets(client, username: str) -> Dict[str, Any]:
+def _x_search_text(client: XClient, query: str, *, max_results: int = 10) -> str:
     """
-    Get user's tweets. Try /v1/x/users/tweets first, fallback to Grok.
+    Search X/Twitter and return a formatted plain-text summary.
+
+    Used as the human-readable output replacement for Grok Live Search.
     """
-    try:
-        result = client._request_with_payment_raw(
-            "/v1/x/users/tweets", {"username": username}
-        )
-        _save_local("/v1/x/users/tweets", {"username": username}, result)
-        return {"source": "api", "data": result}
-    except Exception as e:
-        if "502" in str(e) or "500" in str(e):
-            print(f"    (API 502 → switching to Grok Live Search)")
-            grok_result = _grok_search(
-                client,
-                f"Show me the latest 15 tweets from @{username}. "
-                f"For each tweet include: full text, like count, retweet count, "
-                f"and the direct tweet URL (https://x.com/{username}/status/...).",
-            )
-            return {"source": "grok", "data": grok_result}
-        raise
+    result = _x_search(client, query, "Latest")
+    tweets = result.get("tweets", [])[:max_results]
+    if not tweets:
+        return f"No recent tweets found for: {query}"
+    lines = []
+    for tw in tweets:
+        author = tw.get("author", {})
+        handle = author.get("userName", "?")
+        text = tw.get("text", "")[:200].replace("\n", " ")
+        likes = tw.get("likeCount", 0)
+        rts = tw.get("retweetCount", 0)
+        link = _tweet_link(tw)
+        lines.append(f"@{handle}: {text}")
+        lines.append(f"  Likes: {likes:,}  RTs: {rts:,}")
+        if link:
+            lines.append(f"  {link}")
+        lines.append("")
+    return "\n".join(lines)
+
+
+def _smart_search(client: XClient, query: str, query_type: str = "Latest") -> Dict[str, Any]:
+    """Search X/Twitter via the API and return structured results."""
+    result = _x_search(client, query, query_type)
+    return {"source": "api", "data": result}
+
+
+def _smart_user_tweets(client: XClient, username: str) -> Dict[str, Any]:
+    """Fetch a user's recent tweets via the API."""
+    result = _x_user_tweets(client, username)
+    return {"source": "api", "data": result}
 
 
 # ── Display Helpers ────────────────────────────────────────────
@@ -296,7 +556,7 @@ def _print_tweet(tw: dict, indent: str = "    ", max_text: int = 100):
 
 
 def _print_grok_result(result: Dict[str, Any], label: str = ""):
-    """Print result from either structured API or Grok fallback."""
+    """Print result from either structured API or text fallback."""
     if result["source"] == "api":
         tweets = result["data"].get("tweets", [])
         if label:
@@ -305,7 +565,7 @@ def _print_grok_result(result: Dict[str, Any], label: str = ""):
             _print_tweet(tw, max_text=110)
     else:
         if label:
-            print(f"\n  {label} (via Grok Live Search)")
+            print(f"\n  {label}")
         print(result["data"])
 
 
@@ -368,7 +628,7 @@ def insight(username: str):
         fc = f.get("followers_count", 0)
         print(f"    {v} @{fname:<22} {fc:>10,} followers")
 
-    # 4. Recent tweets (smart — API with Grok fallback)
+    # 4. Recent tweets
     print("\n  Fetching recent tweets...")
     tweets_result = _smart_user_tweets(client, username)
     _print_grok_result(tweets_result, "RECENT TWEETS")
@@ -411,17 +671,17 @@ def radar(topic: str):
         match = " <--" if topic.lower() in name.lower() else ""
         print(f"    {name:<28} {articles:>4} articles  {views:>12,} views{match}")
 
-    # 2. Search latest (smart — API with Grok fallback)
+    # 2. Search latest
     print(f"\n  Searching \"{topic}\"...")
     search_result = _smart_search(client, topic, "Latest")
     _print_grok_result(search_result, "LATEST TWEETS")
 
-    # 3. Top tweets (smart — API with Grok fallback)
+    # 3. Top tweets
     print(f"\n  Searching top tweets...")
     top_result = _smart_search(client, topic, "Top")
     _print_grok_result(top_result, "TOP PERFORMING TWEETS")
 
-    # 4. Rising articles (structured API — stable)
+    # 4. Rising articles (not available in X API v2 standard tier)
     print("\n  Fetching rising articles...")
     rising = _api(client, "/v1/x/articles/rising", {})
     articles = rising.get("data", {}).get("articles", [])
@@ -772,18 +1032,18 @@ def engage(username: str, product: str = None):
     """
     Find unanswered mentions & high-value conversations, generate reply drafts.
 
-    Combines structured mentions API with Grok AI analysis.
+    Uses AI analysis if OPENAI_API_KEY is set; otherwise shows raw mention data.
     """
     username = username.lstrip("@")
     client = _get_client()
 
-    products_context = product or "ClawRouter (LLM router, 41+ models, 92% cost savings) and SocialClaw (X/Twitter intelligence)"
+    products_context = product or "SocialClaw (X/Twitter intelligence)"
 
     print(f"\n{'=' * 60}")
     print(f"  SOCIALCLAW ENGAGE — @{username}")
     print(f"{'=' * 60}")
 
-    # 1. Get mentions (structured API — stable)
+    # 1. Get mentions
     print("\n  Fetching mentions...")
     mentions = _api(client, "/v1/x/users/mentions", {"username": username})
     mention_tweets = mentions.get("tweets", [])
@@ -793,9 +1053,7 @@ def engage(username: str, product: str = None):
         _print_tweet(tw, max_text=150)
         print()
 
-    # 2. Use Grok to analyze mentions and find reply-worthy ones
-    print("\n  Analyzing with Grok...")
-
+    # 2. AI analysis (optional — requires OPENAI_API_KEY)
     mention_summary = []
     for tw in mention_tweets[:15]:
         author = tw.get("author", {})
@@ -808,13 +1066,7 @@ def engage(username: str, product: str = None):
             "link": _tweet_link(tw),
         })
 
-    engage_messages = [
-        {"role": "system", "content":
-            "You are a social media growth strategist for a crypto/AI startup. "
-            "Generate authentic, value-adding replies — never generic or spammy. "
-            "Always include the tweet URL in your output."},
-        {"role": "user", "content":
-            f"""Analyze these mentions of @{username} and generate engagement replies.
+    ai_prompt = f"""Analyze these mentions of @{username} and generate engagement replies.
 
 MENTIONS:
 {json.dumps(mention_summary, indent=2)}
@@ -825,34 +1077,41 @@ PRODUCTS TO PROMOTE (when relevant):
 For each mention that deserves a reply, output:
 1. PRIORITY: high/medium/low (based on author followers, engagement, relevance)
 2. TWEET: the original tweet text and link
-3. REPLY DRAFT: a natural, non-spammy reply that adds value. If relevant, mention the product.
+3. REPLY DRAFT: a natural, non-spammy reply that adds value.
 4. REASON: why this mention is worth replying to
 
 Skip mentions that are just "GM", emoji-only, or spam.
-Focus on: questions, feature requests, comparisons, high-follower accounts, and conversations about LLM costs/AI agents/crypto payments.
+Focus on: questions, feature requests, comparisons, and high-follower accounts.
 
-Output as structured text, not JSON."""},
-    ]
-    engage_result = client.chat_completion(
-        "xai/grok-3",
-        engage_messages,
-        max_tokens=3000,
+Output as structured text, not JSON."""
+
+    analysis = _ai_analyze(
+        ai_prompt,
+        system="You are a social media growth strategist. Generate authentic, value-adding replies — never generic or spammy. Always include the tweet URL in your output.",
     )
-    analysis = engage_result.choices[0].message.content or ""
 
     print(f"\n  ENGAGEMENT RECOMMENDATIONS")
     print(f"  {'-' * 56}")
-    print(analysis)
+    if analysis:
+        print(analysis)
+    else:
+        print("  (Set OPENAI_API_KEY to enable AI-generated reply suggestions)")
+        print("\n  High-priority mentions (by follower count):")
+        sorted_mentions = sorted(
+            mention_summary,
+            key=lambda m: m.get("followers", 0),
+            reverse=True,
+        )
+        for m in sorted_mentions[:5]:
+            print(f"    @{m['handle']} ({m['followers']:,} followers) — {m['text'][:100]}")
+            if m.get("link"):
+                print(f"      {m['link']}")
 
-    # 3. Also find high-value conversations to join (Grok Live Search)
+    # 3. Find high-value conversations to join via X API search
     print(f"\n  Finding conversations to join...")
-    opportunities = _grok_search(
+    opportunities = _x_search_text(
         client,
-        f"Find recent high-engagement tweets (50+ likes) about LLM API costs, "
-        f"AI agent infrastructure, model routing, or crypto payments for AI. "
-        f"These are opportunities for @{username} to reply and promote their products. "
-        f"For each tweet, include: author, text, likes, URL, and a suggested reply angle.",
-        min_likes=50,
+        "AI agents OR LLM infrastructure OR model routing",
         max_results=10,
     )
 
@@ -869,7 +1128,6 @@ Output as structured text, not JSON."""},
 def check(username: str):
     """
     Verify posted tweets and check engagement.
-    Uses Grok Live Search for reliable tweet fetching (no 502).
     """
     username = username.lstrip("@")
     client = _get_client()
@@ -878,7 +1136,7 @@ def check(username: str):
     print(f"  SOCIALCLAW CHECK — @{username}")
     print(f"{'=' * 60}")
 
-    # 1. Profile stats (structured API — stable)
+    # 1. Profile stats
     print("\n  Fetching profile...")
     info = _api(client, "/v1/x/users/info", {"username": username})
     d = _unwrap_data(info)
@@ -886,26 +1144,19 @@ def check(username: str):
     followers = _follower_count(d)
     print(f"  Followers: {followers:,}")
 
-    # 2. Latest tweets via Grok (reliable, no 502)
-    print("\n  Fetching latest tweets via Grok...")
-    tweets_text = _grok_search(
-        client,
-        f"Show me the latest 15 tweets from @{username} (posted in the last 24 hours). "
-        f"For each tweet include:\n"
-        f"- Full text\n"
-        f"- Like count\n"
-        f"- Retweet count\n"
-        f"- Reply count (if available)\n"
-        f"- View/impression count (if available)\n"
-        f"- Direct URL\n"
-        f"- Whether it's a reply, quote tweet, or original tweet\n\n"
-        f"Sort by engagement (likes + retweets) descending.",
-        max_results=15,
-    )
+    # 2. Latest tweets via X API
+    print("\n  Fetching latest tweets...")
+    tweets_result = _x_user_tweets(client, username)
+    tweets = tweets_result.get("tweets", [])
 
     print(f"\n  LATEST TWEETS & ENGAGEMENT")
     print(f"  {'-' * 56}")
-    print(tweets_text)
+    if tweets:
+        for tw in tweets[:15]:
+            _print_tweet(tw, max_text=150)
+            print()
+    else:
+        print("  No recent tweets found.")
 
     # 3. Mention activity (structured API — stable)
     print("\n  Fetching new mentions...")
@@ -941,8 +1192,8 @@ def search(query: str, x_only: bool = True):
     print(f"  SOCIALCLAW SEARCH — \"{query}\"")
     print(f"{'=' * 60}")
 
-    # 1. Try structured API first (cheap, returns structured data)
-    print("\n  Searching via structured API...")
+    # 1. Search latest tweets
+    print("\n  Searching X API...")
     search_result = _smart_search(client, query, "Latest")
 
     if search_result["source"] == "api":
@@ -967,8 +1218,7 @@ def search(query: str, x_only: bool = True):
         top_result = _smart_search(client, query, "Top")
         _print_grok_result(top_result, "TOP PERFORMING TWEETS")
     else:
-        # Grok fallback already printed
-        print(f"\n  RESULTS (via Grok Live Search)")
+        print(f"\n  RESULTS")
         print(f"  {'-' * 56}")
         print(search_result["data"])
 
@@ -1200,10 +1450,9 @@ def brief(username: str):
 
 # ── Helpers ────────────────────────────────────────────────────
 
-def _print_cost(client):
-    s = client.get_spending()
+def _print_cost(client: XClient):
     print(f"\n{'=' * 60}")
-    print(f"  Cost: ${s['total_usd']:.4f} ({s['calls']} calls)")
+    print(f"  X API calls made: {client.calls}")
     print(f"{'=' * 60}")
 
 
@@ -1212,7 +1461,9 @@ def _print_cost(client):
 def _print_help():
     print("SocialClaw v3 — X/Twitter Marketing Intelligence")
     print()
-    print("  Structured APIs first, Grok AI enhancement. All via BlockRun x402.")
+    print("  Powered by the official X API v2.")
+    print("  Set X_API_BEARER_TOKEN to authenticate.")
+    print("  Optionally set OPENAI_API_KEY to enable AI-generated reply drafts.")
     print()
     print("COMMANDS:")
     print()
@@ -1237,17 +1488,19 @@ def _print_help():
     print()
     print("EXAMPLES:")
     print("  socialclaw insight @elonmusk")
-    print("  socialclaw audience @jessepollak")
-    print("  socialclaw search 'AI agents crypto'")
-    print("  socialclaw radar 'Solana DeFi'")
-    print("  socialclaw scout 'x402 crypto'")
-    print("  socialclaw hitlist 'Base blockchain'")
+    print("  socialclaw audience @jack")
+    print("  socialclaw search 'AI agents'")
+    print("  socialclaw radar 'AI infrastructure'")
+    print("  socialclaw scout 'machine learning'")
+    print("  socialclaw hitlist 'open source AI'")
     print("  socialclaw tweet https://x.com/user/status/1234567890123456789")
     print("  socialclaw thread https://x.com/user/status/1234567890123456789")
     print("  socialclaw analytics @VitalikButerin")
-    print("  socialclaw compare @solana @ethereum")
+    print("  socialclaw compare @openai @anthropic")
     print()
-    print("COST: $0.03-$0.15 per workflow. All data saved to ~/.blockrun/data/")
+    print("AUTH: Set X_API_BEARER_TOKEN environment variable or save to ~/.socialclaw/api_key")
+    print("      Get your Bearer Token at: https://developer.twitter.com/")
+    print("DATA: All responses saved to ~/.socialclaw/data/")
 
 
 def main():
@@ -1285,7 +1538,7 @@ def main():
         _print_help()
         return
 
-    _ensure_deps(get_chain())
+    _ensure_deps()
 
     if cmd == "insight" and len(sys.argv) >= 3:
         insight(sys.argv[2])

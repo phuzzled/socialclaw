@@ -1,7 +1,7 @@
 ---
 name: socialclaw
 user-invocable: true
-description: X/Twitter marketing intelligence + content optimization — account insights, topic trends, competitor analysis, audience mapping, KOL discovery, post drafting, post review/scoring, and image generation. Powered by BlockRun's unified API gateway with USDC micropayments.
+description: X/Twitter marketing intelligence + content optimization — account insights, topic trends, competitor analysis, audience mapping, KOL discovery, post drafting, post review/scoring. Powered by the official X API v2.
 allowed-tools: Read, Bash(python:*), Bash(python3:*), Bash(pip:*)
 ---
 
@@ -81,27 +81,30 @@ User asks about X/Twitter
 ## Setup (run once)
 
 ```python
-from pathlib import Path
 import subprocess, sys
 
-chain_file = Path.home() / ".blockrun" / ".chain"
-chain = chain_file.read_text().strip() if chain_file.exists() else "base"
-pkg = "blockrun-llm[solana]>=0.8.0" if chain == "solana" else "blockrun-llm>=0.8.0"
+# Install dependency
+subprocess.check_call([sys.executable, "-m", "pip", "install", "-q", "requests>=2.28.0"], stdout=subprocess.DEVNULL)
 
-subprocess.check_call([sys.executable, "-m", "pip", "install", "-q", pkg], stdout=subprocess.DEVNULL)
+import os
+import requests
 
-if chain == "solana":
-    from blockrun_llm import setup_agent_solana_wallet
-    client = setup_agent_solana_wallet(silent=True)
-else:
-    from blockrun_llm import setup_agent_wallet
-    client = setup_agent_wallet(silent=True)
+BEARER_TOKEN = os.environ.get("X_API_BEARER_TOKEN") or open(
+    os.path.expanduser("~/.socialclaw/api_key")
+).read().strip()
 
-print(f"Wallet: {client.get_wallet_address()}")
-print(f"Balance: ${client.get_balance():.2f} USDC")
+session = requests.Session()
+session.headers["Authorization"] = f"Bearer {BEARER_TOKEN}"
+
+# Quick check
+resp = session.get("https://api.twitter.com/2/users/by/username/jack",
+                   params={"user.fields": "public_metrics"})
+user = resp.json()["data"]
+print(f"Connected! Test: @{user['username']} has {user['public_metrics']['followers_count']:,} followers")
 ```
 
-The SDK auto-scans `~/.<any-folder>/wallet.json` and `solana-wallet.json` — works with any compatible wallet provider.
+**Auth:** Set `X_API_BEARER_TOKEN` environment variable or save token to `~/.socialclaw/api_key`.
+Get your Bearer Token at [developer.twitter.com](https://developer.twitter.com/).
 
 ---
 
@@ -114,18 +117,23 @@ Get full data for a specific tweet — text, metrics, author info.
 ```python
 tweet_id = "1234567890"  # CHANGE THIS
 
-result = client.x_tweet_lookup([tweet_id])
-tw = result.tweets[0] if result.tweets else None
-if tw:
-    a = tw.author or {}
-    print(f"@{a.get('userName','?')}: {tw.text[:280]}")
-    print(f"Likes: {tw.likeCount or 0:,}  RTs: {tw.retweetCount or 0:,}  Replies: {tw.replyCount or 0:,}")
-    print(f"https://x.com/{a.get('userName','?')}/status/{tweet_id}")
-
-print(f"Cost: ${client.get_spending()['total_usd']:.4f}")
+resp = session.get(
+    f"https://api.twitter.com/2/tweets/{tweet_id}",
+    params={
+        "tweet.fields": "public_metrics,author_id",
+        "expansions": "author_id",
+        "user.fields": "username,name,public_metrics",
+    },
+)
+data = resp.json()
+tw = data.get("data", {})
+users = {u["id"]: u for u in data.get("includes", {}).get("users", [])}
+author = users.get(tw.get("author_id", ""), {})
+m = tw.get("public_metrics", {})
+print(f"@{author.get('username','?')}: {tw.get('text','')[:280]}")
+print(f"Likes: {m.get('like_count',0):,}  RTs: {m.get('retweet_count',0):,}")
+print(f"https://x.com/{author.get('username','?')}/status/{tweet_id}")
 ```
-
-**Cost: ~$0.16** | Present as: tweet content, engagement metrics, author context.
 
 ---
 
@@ -136,17 +144,24 @@ Get a full conversation thread from any tweet in it.
 ```python
 tweet_id = "1234567890"  # CHANGE THIS
 
-result = client.x_tweet_thread(tweet_id)
-for tw in result.tweets:
-    a = tw.author or {}
-    print(f"@{a.get('userName','?')}: {tw.text[:200]}")
-    print(f"  https://x.com/{a.get('userName','?')}/status/{tw.tweetId}")
+resp = session.get(
+    "https://api.twitter.com/2/tweets/search/recent",
+    params={
+        "query": f"conversation_id:{tweet_id}",
+        "tweet.fields": "public_metrics,author_id",
+        "expansions": "author_id",
+        "user.fields": "username,name",
+        "max_results": 100,
+    },
+)
+data = resp.json()
+users = {u["id"]: u for u in data.get("includes", {}).get("users", [])}
+for tw in data.get("data", []):
+    author = users.get(tw.get("author_id", ""), {})
+    print(f"@{author.get('username','?')}: {tw.get('text','')[:200]}")
+    print(f"  https://x.com/{author.get('username','?')}/status/{tw['id']}")
     print()
-
-print(f"Cost: ${client.get_spending()['total_usd']:.4f}")
 ```
-
-**Cost: ~$0.03** | Present as: full thread narrative with key points and engagement.
 
 ---
 
@@ -155,16 +170,28 @@ print(f"Cost: ${client.get_spending()['total_usd']:.4f}")
 Author intelligence — posting patterns, engagement rates, content breakdown.
 
 ```python
-handle = "jessepollak"  # CHANGE THIS
+handle = "jack"  # CHANGE THIS
 
-result = client.x_author_analytics(handle)
-d = result.data if hasattr(result, 'data') else result
-print(d)
+# Get user ID first
+resp = session.get(
+    f"https://api.twitter.com/2/users/by/username/{handle}",
+    params={"user.fields": "public_metrics"},
+)
+user = resp.json()["data"]
+user_id = user["id"]
+m = user.get("public_metrics", {})
+print(f"@{handle}: {m.get('followers_count',0):,} followers, {m.get('tweet_count',0):,} tweets")
 
-print(f"Cost: ${client.get_spending()['total_usd']:.4f}")
+# Recent tweets for engagement stats
+resp2 = session.get(
+    f"https://api.twitter.com/2/users/{user_id}/tweets",
+    params={"tweet.fields": "public_metrics", "max_results": 20},
+)
+tweets = resp2.json().get("data", [])
+if tweets:
+    likes = [t["public_metrics"]["like_count"] for t in tweets]
+    print(f"Avg likes/tweet: {sum(likes)/len(likes):.1f}")
 ```
-
-**Cost: ~$0.02** | Present as: posting cadence, best-performing content types, engagement trends.
 
 ---
 
@@ -173,32 +200,38 @@ print(f"Cost: ${client.get_spending()['total_usd']:.4f}")
 Who is this account? What's their influence? Who talks about them?
 
 ```python
-username = "jessepollak"  # CHANGE THIS
+username = "jack"  # CHANGE THIS
 
 # Profile
-info = client.x_user_info(username)
-d = info.data
-print(f"@{d.get('userName')}: {d.get('followers'):,} followers, verified={d.get('isBlueVerified')}")
+resp = session.get(
+    f"https://api.twitter.com/2/users/by/username/{username}",
+    params={"user.fields": "public_metrics,description,verified"},
+)
+d = resp.json()["data"]
+m = d.get("public_metrics", {})
+user_id = d["id"]
+print(f"@{d['username']}: {m.get('followers_count',0):,} followers")
 print(f"Bio: {d.get('description','')[:120]}")
-print(f"F/F ratio: {d.get('followers',0) / max(d.get('following',1), 1):.1f}x")
 
 # Who mentions them (engagement quality)
-mentions = client.x_user_mentions(username)
-for tw in mentions.tweets[:5]:
-    print(f"  @{tw.author.get('userName','?')}: {tw.text[:100]}")
-
-# Top followers by influence
-followers = client.x_followers(username)
-top = sorted(followers.followers, key=lambda x: x.get('followers_count', 0), reverse=True)[:10]
-for f in top:
-    print(f"  @{f.get('userName','?'):20s} {f.get('followers_count',0):>10,} followers")
-
-print(f"Cost: ${client.get_spending()['total_usd']:.4f}")
+resp2 = session.get(
+    f"https://api.twitter.com/2/users/{user_id}/mentions",
+    params={
+        "tweet.fields": "public_metrics,author_id",
+        "expansions": "author_id",
+        "user.fields": "username,public_metrics",
+        "max_results": 100,
+    },
+)
+data2 = resp2.json()
+users_map = {u["id"]: u for u in data2.get("includes", {}).get("users", [])}
+for tw in data2.get("data", [])[:5]:
+    author = users_map.get(tw.get("author_id", ""), {})
+    print(f"  @{author.get('username','?')}: {tw.get('text','')[:100]}")
 ```
 
-**Cost: ~$0.08** | Present as: audience size, engagement quality, content themes, growth signals.
-
 ---
+
 
 ### 5. Radar — Topic Intelligence (`radar <topic>`)
 
@@ -207,25 +240,26 @@ What's hot? What content is working? Where should I jump in?
 ```python
 topic = "AI agents"  # CHANGE THIS
 
-# Trending topics with view counts
-trending = client.x_trending()
-for t in trending.data.get("topics", [])[:10]:
-    print(f"  {t['name']:<28} {t.get('articleCount',0):>4} articles  {t.get('totalViews',0):>12,} views")
-
-# Latest conversation
-search = client.x_search(topic)
-for tw in search.tweets[:10]:
-    print(f"  @{tw.author.get('userName','?')}: {tw.text[:100]}")
-
-# Viral content detection
-rising = client.x_articles_rising()
-for a in rising.data.get("articles", [])[:5]:
-    print(f"  {a.get('title','?')[:70]} — {a.get('url','')}")
-
-print(f"Cost: ${client.get_spending()['total_usd']:.4f}")
+# Latest conversation via X API search
+resp = session.get(
+    "https://api.twitter.com/2/tweets/search/recent",
+    params={
+        "query": topic,
+        "tweet.fields": "public_metrics,author_id",
+        "expansions": "author_id",
+        "user.fields": "username,public_metrics",
+        "max_results": 100,
+        "sort_order": "recency",
+    },
+)
+data = resp.json()
+users_map = {u["id"]: u for u in data.get("includes", {}).get("users", [])}
+for tw in data.get("data", [])[:10]:
+    author = users_map.get(tw.get("author_id", ""), {})
+    m = tw.get("public_metrics", {})
+    print(f"  @{author.get('username','?')}: {tw.get('text','')[:100]}")
+    print(f"    Likes: {m.get('like_count',0)}, RTs: {m.get('retweet_count',0)}")
 ```
-
-**Cost: ~$0.07** | Present as: trending angles, top content formats, suggested post ideas.
 
 ---
 
@@ -234,61 +268,55 @@ print(f"Cost: ${client.get_spending()['total_usd']:.4f}")
 Side-by-side: who's winning and why?
 
 ```python
-user1, user2 = "jessepollak", "VitalikButerin"  # CHANGE THESE
+user1, user2 = "openai", "anthropic"  # CHANGE THESE
 
-# Profiles
-i1 = client.x_user_info(user1).data
-i2 = client.x_user_info(user2).data
+def get_user(username):
+    r = session.get(
+        f"https://api.twitter.com/2/users/by/username/{username}",
+        params={"user.fields": "public_metrics,description"},
+    )
+    return r.json()["data"]
+
+i1 = get_user(user1)
+i2 = get_user(user2)
+m1 = i1.get("public_metrics", {})
+m2 = i2.get("public_metrics", {})
+
 print(f"{'':20s} @{user1:>15s} @{user2:>15s}")
-print(f"{'Followers':20s} {i1.get('followers',0):>15,} {i2.get('followers',0):>15,}")
-
-# Mention engagement
-m1 = client.x_user_mentions(user1).tweets
-m2 = client.x_user_mentions(user2).tweets
-likes1 = sum(tw.likeCount or 0 for tw in m1)
-likes2 = sum(tw.likeCount or 0 for tw in m2)
-print(f"{'Mention likes':20s} {likes1:>15,} {likes2:>15,}")
-
-# Top followers
-f1 = sorted(client.x_followers(user1).followers, key=lambda x: x.get('followers_count',0), reverse=True)[:3]
-f2 = sorted(client.x_followers(user2).followers, key=lambda x: x.get('followers_count',0), reverse=True)[:3]
-
-print(f"Cost: ${client.get_spending()['total_usd']:.4f}")
+print(f"{'Followers':20s} {m1.get('followers_count',0):>15,} {m2.get('followers_count',0):>15,}")
+print(f"{'Tweets':20s} {m1.get('tweet_count',0):>15,} {m2.get('tweet_count',0):>15,}")
 ```
-
-**Cost: ~$0.15** | Present as: who has momentum, content strategy differences, audience quality.
 
 ---
 
 ### 7. Audience — Follower Segmentation (`audience @username`)
 
-Who follows them? Cluster by influence tier and interests.
+Who follows them? Cluster by influence tier.
 
 ```python
-username = "jessepollak"  # CHANGE THIS
+username = "jack"  # CHANGE THIS
 
-# Get followers (200 per page)
-followers = client.x_followers(username)
-all_followers = followers.followers
+# Get user ID
+resp = session.get(f"https://api.twitter.com/2/users/by/username/{username}")
+user_id = resp.json()["data"]["id"]
 
-# Batch lookup top 50 for detailed profiles
-top_handles = [f.get("userName") for f in sorted(all_followers, key=lambda x: x.get("followers_count",0), reverse=True)[:50] if f.get("userName")]
-details = client.x_user_lookup(top_handles)
+# Get followers
+resp2 = session.get(
+    f"https://api.twitter.com/2/users/{user_id}/followers",
+    params={"user.fields": "public_metrics,description", "max_results": 1000},
+)
+followers = resp2.json().get("data", [])
 
-# Segment by tier
-mega = [u for u in details.users if u.followers >= 100000]
-macro = [u for u in details.users if 10000 <= u.followers < 100000]
-micro = [u for u in details.users if 1000 <= u.followers < 10000]
+# Segment by follower count
+mega = [f for f in followers if f.get("public_metrics", {}).get("followers_count", 0) >= 100000]
+macro = [f for f in followers if 10000 <= f.get("public_metrics", {}).get("followers_count", 0) < 100000]
+micro = [f for f in followers if 1000 <= f.get("public_metrics", {}).get("followers_count", 0) < 10000]
 
 print(f"Mega (100K+): {len(mega)}")
-for u in mega: print(f"  @{u.userName}: {u.followers:,} — {u.description[:80]}")
-print(f"Macro (10K-100K): {len(macro)}")
-print(f"Micro (1K-10K): {len(micro)}")
-
-print(f"Cost: ${client.get_spending()['total_usd']:.4f}")
+for u in sorted(mega, key=lambda x: x.get("public_metrics", {}).get("followers_count", 0), reverse=True)[:5]:
+    fc = u.get("public_metrics", {}).get("followers_count", 0)
+    print(f"  @{u['username']}: {fc:,} — {u.get('description','')[:60]}")
 ```
-
-**Cost: ~$0.15** | Present as: audience tiers, common interests/bios, potential partners.
 
 ---
 
@@ -297,35 +325,33 @@ print(f"Cost: ${client.get_spending()['total_usd']:.4f}")
 Find the key voices in any topic.
 
 ```python
-topic = "AI agents crypto"  # CHANGE THIS
+topic = "machine learning"  # CHANGE THIS
 
-# Find who's talking about it
-search = client.x_search(topic)
+resp = session.get(
+    "https://api.twitter.com/2/tweets/search/recent",
+    params={
+        "query": topic,
+        "tweet.fields": "public_metrics,author_id",
+        "expansions": "author_id",
+        "user.fields": "username,public_metrics,description",
+        "max_results": 100,
+    },
+)
+data = resp.json()
+users_map = {u["id"]: u for u in data.get("includes", {}).get("users", [])}
 
-# Extract unique authors
+# Rank unique authors by followers
 authors = {}
-for tw in search.tweets:
-    a = tw.author or {}
-    handle = a.get("userName", "")
-    if handle and handle not in authors:
-        fc = a.get("followers", a.get("followersCount", 0))
-        authors[handle] = {"followers": fc, "text": tw.text[:100], "likes": tw.likeCount or 0}
+for tw in data.get("data", []):
+    uid = tw.get("author_id")
+    if uid and uid not in authors:
+        u = users_map.get(uid, {})
+        fc = u.get("public_metrics", {}).get("followers_count", 0)
+        authors[uid] = {"username": u.get("username","?"), "followers": fc, "bio": u.get("description","")[:60]}
 
-# Rank by influence
-ranked = sorted(authors.items(), key=lambda x: x[1]["followers"], reverse=True)
-
-print(f"Top voices on '{topic}':")
-# Batch lookup for full profiles
-top_handles = [h for h, _ in ranked[:20]]
-if top_handles:
-    details = client.x_user_lookup(top_handles)
-    for u in details.users:
-        print(f"  @{u.userName:20s} {u.followers:>10,} followers — {str(u.description)[:60]}")
-
-print(f"Cost: ${client.get_spending()['total_usd']:.4f}")
+for uid, a in sorted(authors.items(), key=lambda x: x[1]["followers"], reverse=True)[:10]:
+    print(f"  @{a['username']:20s} {a['followers']:>10,} followers — {a['bio']}")
 ```
-
-**Cost: ~$0.07** | Present as: ranked influencer list with follower counts and bios.
 
 ---
 
@@ -334,29 +360,38 @@ print(f"Cost: ${client.get_spending()['total_usd']:.4f}")
 High-value conversations to engage with RIGHT NOW.
 
 ```python
-topic = "base blockchain"  # CHANGE THIS
+topic = "open source AI"  # CHANGE THIS
 
-# Find high-engagement recent tweets
-search = client.x_search(topic)
+resp = session.get(
+    "https://api.twitter.com/2/tweets/search/recent",
+    params={
+        "query": topic,
+        "tweet.fields": "public_metrics,author_id",
+        "expansions": "author_id",
+        "user.fields": "username,public_metrics",
+        "max_results": 100,
+        "sort_order": "recency",
+    },
+)
+data = resp.json()
+users_map = {u["id"]: u for u in data.get("includes", {}).get("users", [])}
 
-# Sort by engagement (likes + RTs)
-tweets = [(tw, (tw.likeCount or 0) + (tw.retweetCount or 0)) for tw in search.tweets]
-tweets.sort(key=lambda x: x[1], reverse=True)
+tweets_with_eng = []
+for tw in data.get("data", []):
+    m = tw.get("public_metrics", {})
+    eng = m.get("like_count", 0) + m.get("retweet_count", 0)
+    tweets_with_eng.append((tw, eng))
+
+tweets_with_eng.sort(key=lambda x: x[1], reverse=True)
 
 print(f"Engagement targets for '{topic}':")
-for tw, eng in tweets[:10]:
-    a = tw.author or {}
-    handle = a.get("userName", "?")
-    fc = a.get("followers", a.get("followersCount", 0))
-    print(f"  @{handle} ({fc:,} followers) — {eng} engagement")
-    print(f"    {tw.text[:120]}")
-    print(f"    Suggest: reply with insight about...")
+for tw, eng in tweets_with_eng[:10]:
+    author = users_map.get(tw.get("author_id", ""), {})
+    fc = author.get("public_metrics", {}).get("followers_count", 0)
+    print(f"  @{author.get('username','?')} ({fc:,} followers) — {eng} engagement")
+    print(f"    {tw.get('text','')[:120]}")
     print()
-
-print(f"Cost: ${client.get_spending()['total_usd']:.4f}")
 ```
-
-**Cost: ~$0.03** | Present as: ranked conversations to join, with suggested reply angles.
 
 ---
 
@@ -365,47 +400,49 @@ print(f"Cost: ${client.get_spending()['total_usd']:.4f}")
 What happened overnight? What should I post today?
 
 ```python
-username = "blockrunai"  # CHANGE THIS — user's own handle
+username = "yourusername"  # CHANGE THIS — user's own handle
 
-# 1. My mentions (who's talking about me?)
-mentions = client.x_user_mentions(username)
-print(f"Mentions: {len(mentions.tweets)} new")
-for tw in mentions.tweets[:5]:
-    print(f"  @{tw.author.get('userName','?')}: {tw.text[:80]}")
+# Get user ID
+resp = session.get(f"https://api.twitter.com/2/users/by/username/{username}")
+user_id = resp.json()["data"]["id"]
 
-# 2. Trending (what's hot in my space?)
-trending = client.x_trending()
-for t in trending.data.get("topics", [])[:5]:
-    print(f"  {t['name']}: {t.get('totalViews',0):,} views")
+# My mentions (who's talking about me?)
+resp2 = session.get(
+    f"https://api.twitter.com/2/users/{user_id}/mentions",
+    params={
+        "tweet.fields": "public_metrics,author_id",
+        "expansions": "author_id",
+        "user.fields": "username,public_metrics",
+        "max_results": 100,
+    },
+)
+data2 = resp2.json()
+users_map = {u["id"]: u for u in data2.get("includes", {}).get("users", [])}
+mentions = data2.get("data", [])
+print(f"Mentions: {len(mentions)} new")
+for tw in mentions[:5]:
+    author = users_map.get(tw.get("author_id", ""), {})
+    print(f"  @{author.get('username','?')}: {tw.get('text','')[:80]}")
 
-# 3. Rising content (what's going viral?)
-rising = client.x_articles_rising()
-articles = rising.data.get("articles", [])[:3]
-for a in articles:
-    print(f"  {a.get('title','?')[:60]}")
-
-# 4. Actionable summary
+# Actionable summary
 print("\nSUGGESTED ACTIONS:")
 print("  1. Reply to top mentions to boost engagement")
-print("  2. Create content around trending topic #1")
-print("  3. Share perspective on rising article #1")
-
-print(f"Cost: ${client.get_spending()['total_usd']:.4f}")
+print("  2. Search trending topics and create timely content")
+print("  3. Engage in top threads in your niche (use hitlist)")
 ```
-
-**Cost: ~$0.08** | Present as: morning brief with 3 concrete actions for today.
-
----
 
 ---
 
 ### 11. Draft — Write Optimized Posts (`draft "topic"`)
 
-Write high-performing X posts using the actual X algorithm ranking weights. Optionally uses real-time research via BlockRun to find what's working.
+Write high-performing X posts using the actual X algorithm ranking weights.
 
-**Step 1: Research** (if BlockRun MCP available, use `blockrun_twitter`):
+**Step 1: Research** using X API search to find what's working:
 ```python
-search = client.x_search(topic)
+resp = session.get(
+    "https://api.twitter.com/2/tweets/search/recent",
+    params={"query": topic, "tweet.fields": "public_metrics", "sort_order": "relevancy", "max_results": 20},
+)
 # Find 3-5 high-performing examples, identify hooks and formats that work
 ```
 
@@ -443,24 +480,7 @@ Reference `knowledge/best-practices.md` for hook patterns:
 - **Hook:** [Strategy used]
 - **Algorithm:** [Which ranking factors it optimizes for]
 - **Format:** [Why this structure was chosen]
-
----
-
-## BEST PRACTICES APPLIED:
-
-- [Specific practice 1]
-- [Specific practice 2]
-- [Specific practice 3]
-
----
-
-## IMAGE SUGGESTION:
-
-This post would benefit from a visual.
-Type `socialclaw image "[suggested description]"` to generate one.
 ```
-
-**Cost: ~$0.03** (with research) | **Free** (without research, uses baked-in knowledge only)
 
 ---
 
@@ -478,49 +498,13 @@ Analyze and score the user's draft against the X algorithm. Provide optimization
 | Format & Length | 15% | Perfect length, scannable | Wall of text |
 | Negative Signal Check | 15% | No issues | Would trigger "show less" |
 
-**Output:**
-
-```
-## SCORE: [X]/10
-
----
-
-## CHECKLIST AUDIT:
-
-| Factor | Status | Notes |
-|--------|--------|-------|
-| Hook | [pass/fail] | [specific feedback] |
-| Length | [pass/fail] | [specific feedback] |
-| Engagement trigger | [pass/fail] | [specific feedback] |
-| Specificity | [pass/fail] | [specific feedback] |
-| Negative signals | [pass/fail] | [specific feedback] |
-
----
-
-## OPTIMIZED VERSION:
-
-[Rewritten post]
-
----
-
-## WHAT CHANGED:
-
-- [Change 1 and why]
-- [Change 2 and why]
-```
-
 **Cost: Free** (no API calls, uses baked-in algorithm knowledge)
 
 ---
 
 ### 13. Image — Generate Post Visuals (`image "description"`)
 
-Generate optimized images for X posts. Requires BlockRun MCP.
-
-```python
-# Generate via BlockRun
-result = client.generate(prompt="[optimized prompt]", model="google/nano-banana")
-```
+Generate optimized images for X posts. Requires an image generation API (e.g., DALL-E via OpenAI).
 
 **X-optimized image guidelines:**
 - High contrast (stops the scroll)
@@ -528,13 +512,6 @@ result = client.generate(prompt="[optimized prompt]", model="google/nano-banana"
 - Bold colors, clean composition
 - 1200x675 for optimal X preview
 - Posts with images get 2x engagement
-
-**Output:**
-1. Generated image
-2. Optimization tips applied
-3. Suggested post to accompany the image
-
-**Cost: ~$0.05** | Alternative: `openai/dall-e-3` ($0.04-0.08) for higher fidelity
 
 ---
 
@@ -562,7 +539,7 @@ These weights from `knowledge/algorithm.md` should inform ALL content creation:
 SocialClaw covers X/Twitter only. Do **not** use it for:
 
 - **Other social platforms** — Farcaster, Lens, Instagram, TikTok, LinkedIn, YouTube, Reddit, Discord. Use web search or platform-specific tools instead.
-- **Non-social queries** — on-chain data, token prices, protocol docs, general web content. Use the appropriate tool for those.
+- **Non-social queries** — general web content, non-X data. Use the appropriate tool for those.
 - **Actually posting tweets** — SocialClaw helps you research and write, but does not post, reply, like, or retweet on your behalf.
 
 If the question is about X/Twitter intelligence or content creation, SocialClaw is the answer. For everything else, use something else.
@@ -571,28 +548,20 @@ If the question is about X/Twitter intelligence or content creation, SocialClaw 
 
 ## Data Auto-Save
 
-All paid API responses are saved to `~/.blockrun/data/` as JSON. You paid for it, you keep it.
+All API responses are saved to `~/.socialclaw/data/` as JSON.
 
 ## API Reference
 
-| Method | What | Cost |
-|--------|------|------|
-| `x_user_info(username)` | Profile stats | $0.002 |
-| `x_user_lookup([users])` | Batch profiles (up to 100) | $0.002/user |
-| `x_followers(username)` | Follower list (~200/page) | $0.05/page |
-| `x_followings(username)` | Following list (~200/page) | $0.05/page |
-| `x_user_tweets(username)` | User's tweets | $0.032/page |
-| `x_user_mentions(username)` | Mentions of user | $0.032/page |
-| `x_search(query)` | Search tweets | $0.032/page |
-| `x_trending()` | Trending topics | $0.002 |
-| `x_articles_rising()` | Viral content | $0.05 |
-| `x_tweet_lookup([ids])` | Batch tweet data | $0.16/batch |
-| `x_tweet_replies(id)` | Replies | $0.032/page |
-| `x_tweet_thread(id)` | Thread | $0.032/page |
-| `x_author_analytics(handle)` | Author intelligence | $0.02 |
-| `x_compare_authors(h1, h2)` | Compare two accounts | $0.05 |
-| `chat(model, prompt)` | LLM (GPT, Grok, DeepSeek) | varies |
-| `generate(prompt)` | Image generation | $0.01-0.04 |
+| Endpoint (X API v2) | What | CLI command |
+|---------------------|------|-------------|
+| `GET /2/users/by/username/{u}` | Profile stats | `insight @handle` |
+| `GET /2/users/{id}/followers` | Follower list | `audience @handle` |
+| `GET /2/users/{id}/tweets` | User's tweets | `check @handle` |
+| `GET /2/users/{id}/mentions` | Mentions of user | `engage @handle` |
+| `GET /2/tweets/search/recent` | Search tweets | `search <query>` |
+| `GET /2/tweets/{id}` | Single tweet data | `tweet <id>` |
+| `GET /2/tweets/search/recent?query=conversation_id:{id}` | Replies / thread | `thread <id>` |
+| `chat(model, prompt)` | LLM (OpenAI if OPENAI_API_KEY set) | `engage @handle` |
 
 ## Triggers
 
