@@ -200,7 +200,7 @@ SocialSwag uses OpenRouter (default: x-ai/grok-4.20-beta) to generate contextual
 **Clone and install:**
 
 ```bash
-git clone https://github.com/BlockRunAI/socialswag && cd socialswag
+git clone [https://github.com/phuzzled/socialswag] && cd socialswag
 bash install.sh                          # install SocialSwag (safe mode)
 MODE=takeover bash install.sh            # also replace sibling skills
 MODE=force bash install.sh               # overwrite every sibling skill
