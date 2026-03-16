@@ -4,17 +4,40 @@
 
 You are helping the user write an optimized X (Twitter) post about: **{{TOPIC}}**
 
-## Research Phase (if BlockRun available)
+## Research Phase
 
-Search for recent high-performing posts:
+Search for recent high-performing posts using the X API:
+
+```python
+import os
+import requests
+
+session = requests.Session()
+session.headers["Authorization"] = f"Bearer {os.environ['X_API_BEARER_TOKEN']}"
+
+resp = session.get(
+    "https://api.x.com/2/tweets/search/recent",
+    params={
+        "query": "{{TOPIC}}",
+        "tweet.fields": "public_metrics",
+        "sort_order": "relevancy",
+        "max_results": 20,
+    },
+)
+tweets = resp.json().get("data", [])
+# Analyze high-performing tweets (sort by like_count + retweet_count)
 ```
-blockrun_twitter query: "successful posts about {{TOPIC}}"
+
+Or via CLI:
+```bash
+socialclaw search "{{TOPIC}}"
+socialclaw radar "{{TOPIC}}"
 ```
 
 Look for:
 - What hooks are working
 - What formats get engagement
-- What angles resonate
+- What angles resonate with the audience
 
 ## Generation Guidelines
 

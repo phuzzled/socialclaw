@@ -14,7 +14,7 @@ API_KEY_FILE = CONFIG_DIR / "api_key"
 
 # Default configuration values
 DEFAULTS = {
-    "api_base_url": "https://api.twitter.com/2",
+    "api_base_url": "https://api.x.com/2",
     "timeout": 30.0,
     "max_results": 100,
 }
@@ -87,7 +87,8 @@ def validate_config() -> Dict[str, Any]:
         errors.append(
             "No X API Bearer Token found. "
             "Set X_API_BEARER_TOKEN environment variable "
-            "or save your token to ~/.socialclaw/api_key"
+            "or save your token to ~/.socialclaw/api_key. "
+            "Get yours at https://developer.x.com/"
         )
 
     api_url = os.environ.get("X_API_BASE_URL", DEFAULTS["api_base_url"])

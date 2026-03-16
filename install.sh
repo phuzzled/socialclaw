@@ -45,7 +45,7 @@ Environment:
 
 Authentication:
   SocialClaw uses the official X API v2. You need an X Developer account and
-  Bearer Token. Get yours at: https://developer.twitter.com/
+  Bearer Token. Get yours at: https://developer.x.com/
 
   Set your token before running SocialClaw:
     export X_API_BEARER_TOKEN="your_bearer_token_here"
@@ -430,7 +430,7 @@ verify_install() {
         log ""
         log "  mkdir -p ~/.socialclaw && echo \"your_bearer_token\" > ~/.socialclaw/api_key"
         log ""
-        log "Get your Bearer Token at: https://developer.twitter.com/"
+        log "Get your Bearer Token at: https://developer.x.com/"
         log ""
 
         # Check if already configured

@@ -8,7 +8,7 @@
     {
       "name": "socialclaw",
       "source": "./skills/socialclaw",
-      "description": "Grow your X/Twitter to 5M+ views in 3 months — trend detection, audience insights, engagement targets, KOL discovery. No API keys, just USDC."
+      "description": "X/Twitter intelligence for your AI agent — trend detection, account deep-dives, audience insights, engagement targets, KOL discovery, content drafting. Powered by the official X API v2."
     }
   ]
 }

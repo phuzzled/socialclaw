@@ -56,18 +56,14 @@ class BlockRunBranding:
     def print_header(
         self,
         model: str,
-        wallet: Optional[str] = None,
-        balance: Optional[str] = None,
         cost_estimate: Optional[str] = None,
     ):
         """
         Print branded header before operation.
 
         Args:
-            model: Model being used
-            wallet: Wallet address (truncated)
-            balance: Current USDC balance
-            cost_estimate: Estimated cost for this operation
+            model: Model being used (for AI features)
+            cost_estimate: Estimated number of X API calls for this operation (e.g., "~3 calls")
         """
         if self.show_logo:
             print(self._c("cyan", self.LOGO))
@@ -80,16 +76,8 @@ class BlockRunBranding:
         # Model info
         print(f"  Model: {self._c('cyan', model)}", end="")
         if cost_estimate:
-            print(f"  |  Est. Cost: {self._c('yellow', cost_estimate)}", end="")
+            print(f"  |  Est. API calls: {self._c('yellow', cost_estimate)}", end="")
         print()
-
-        # Wallet info
-        if wallet:
-            wallet_display = f"{wallet[:6]}...{wallet[-4:]}" if len(wallet) > 12 else wallet
-            print(f"  Wallet: {self._c('dim', wallet_display)}", end="")
-            if balance:
-                print(f"  |  Balance: {self._c('green', balance)} USDC", end="")
-            print()
 
         print(self._c("dim", self.HEADER_LINE))
         print()
@@ -121,13 +109,12 @@ class BlockRunBranding:
         if description:
             print(f"  {self._c('dim', description)}")
 
-        print(f"  {self._c('dim', 'Accessed via: SocialClaw x402 micropayments')}")
+        print(f"  {self._c('dim', 'Accessed via: SocialClaw × X API v2')}")
         print(self._c("dim", "-" * 60))
 
     def print_footer(
         self,
         actual_cost: Optional[str] = None,
-        new_balance: Optional[str] = None,
         session_total: Optional[float] = None,
         session_calls: Optional[int] = None,
         budget_remaining: Optional[float] = None,
@@ -137,9 +124,8 @@ class BlockRunBranding:
         Print branded footer after operation.
 
         Args:
-            actual_cost: Actual cost of the operation
-            new_balance: New wallet balance after operation
-            session_total: Total spent this session
+            actual_cost: X API calls made for this operation
+            session_total: Total spent this session (USD, if AI model used)
             session_calls: Number of calls this session
             budget_remaining: Remaining budget (None if no limit)
             budget_limit: Budget limit (None if no limit)
@@ -148,7 +134,7 @@ class BlockRunBranding:
         print(self._c("dim", "-" * 60))
 
         if actual_cost:
-            print(f"  {self._c('green', '✓')} This call: ${actual_cost}")
+            print(f"  {self._c('green', '✓')} This call: {actual_cost}")
 
         if session_total is not None:
             calls_str = f" ({session_calls} calls)" if session_calls else ""
@@ -157,7 +143,7 @@ class BlockRunBranding:
         if budget_remaining is not None and budget_limit is not None:
             print(f"  {self._c('green', '✓')} Budget remaining: ${budget_remaining:.4f} of ${budget_limit:.2f}")
 
-        print(f"  {self._c('dim', 'Powered by SocialClaw × BlockRun • blockrun.ai')}")
+        print(f"  {self._c('dim', 'Powered by SocialClaw × X API v2 • docs.x.com/x-api')}")
 
     def print_error(self, message: str, help_link: Optional[str] = None):
         """
@@ -181,28 +167,9 @@ class BlockRunBranding:
         """Print branded info message."""
         print(self._c("cyan", f"  ℹ {message}"))
 
-    def print_balance(self, wallet: str, balance: str, network: str = "Base"):
-        """
-        Print wallet balance in branded format.
-
-        Args:
-            wallet: Full wallet address
-            balance: USDC balance
-            network: Network name (default: Base)
-        """
-        print()
-        print(self._c("dim", self.HEADER_LINE))
-        print(self._c("bold", "  SOCIALCLAW WALLET"))
-        print(self._c("dim", self.HEADER_LINE))
-        print(f"  Address: {self._c('cyan', wallet)}")
-        print(f"  Network: {network}")
-        print(f"  Balance: {self._c('green', balance)} USDC")
-        print(self._c("dim", self.HEADER_LINE))
-        print()
-
     def print_models_list(self, models: list, image_models: list = None):
         """
-        Print available models in branded format with pricing.
+        Print available AI models in branded format.
 
         Args:
             models: List of LLM model dicts with id, pricing info
@@ -210,10 +177,8 @@ class BlockRunBranding:
         """
         print()
         print(self._c("dim", self.HEADER_LINE))
-        print(self._c("bold", "  AVAILABLE MODELS"))
+        print(self._c("bold", "  AVAILABLE AI MODELS"))
         print(self._c("dim", self.HEADER_LINE))
-        print()
-        print(f"  {self._c('dim', 'Live data from:')} {self._c('cyan', 'https://blockrun.ai/api/pricing')}")
         print()
 
         # LLM Models
@@ -222,7 +187,6 @@ class BlockRunBranding:
             print()
             for model in models:
                 model_id = model.get("id", "unknown")
-                # Handle different pricing formats from API
                 input_price = model.get("inputPrice") or model.get("pricing", {}).get("input")
                 output_price = model.get("outputPrice") or model.get("pricing", {}).get("output")
 
@@ -245,35 +209,12 @@ class BlockRunBranding:
                 print()
 
         print(self._c("dim", self.HEADER_LINE))
-        print(f"  {self._c('dim', 'Prices in USDC • Pay only for what you use')}")
-        print()
-
-
-    def print_budget_error(self, spent: float, limit: float, calls: int):
-        """
-        Print budget limit reached error.
-
-        Args:
-            spent: Amount spent
-            limit: Budget limit
-            calls: Number of calls made
-        """
-        print()
-        print(self._c("dim", self.HEADER_LINE))
-        print(self._c("yellow", "  ⚠ BUDGET LIMIT REACHED"))
-        print(self._c("dim", self.HEADER_LINE))
-        print(f"  Spent: {self._c('red', f'${spent:.4f}')} across {calls} calls")
-        print(f"  Limit: ${limit:.2f}/day")
-        print()
-        print("  Options:")
-        print(f"    {self._c('cyan', 'python run.py --set-budget 2.00')}   # Increase limit")
-        print(f"    {self._c('cyan', 'python run.py --clear-budget')}      # Remove limit")
-        print(f"    {self._c('dim', '(Budget resets tomorrow)')}")
+        print(f"  {self._c('dim', 'Set OPENAI_API_KEY to enable AI features')}")
         print()
 
     def print_spending_summary(self, data: dict):
         """
-        Print spending summary.
+        Print AI usage/spending summary.
 
         Args:
             data: Spending tracker data dict
@@ -287,10 +228,10 @@ class BlockRunBranding:
 
         print()
         print(self._c("dim", self.HEADER_LINE))
-        print(self._c("bold", "  SPENDING SUMMARY"))
+        print(self._c("bold", "  AI USAGE SUMMARY"))
         print(self._c("dim", self.HEADER_LINE))
         print(f"  Date: {session_id}")
-        print(f"  Spent: {self._c('cyan', f'${total:.4f}')} across {calls} calls")
+        print(f"  AI spend: {self._c('cyan', f'${total:.4f}')} across {calls} AI calls")
 
         if limit is not None:
             remaining = max(0, limit - total)
@@ -300,13 +241,12 @@ class BlockRunBranding:
 
         if history:
             print()
-            print(self._c("bold", "  Recent calls:"))
+            print(self._c("bold", "  Recent AI calls:"))
             for entry in history[-10:]:
                 ts = entry.get("timestamp", "")
                 time_str = ts[11:16] if len(ts) >= 16 else ts  # Extract HH:MM
                 model = entry.get("model", "unknown")
                 cost = entry.get("cost", 0)
-                # Truncate long model names to avoid misalignment
                 model_display = model[:32] + "..." if len(model) > 35 else model
                 print(f"    {time_str}  {model_display:<35}  ${cost:.4f}")
 

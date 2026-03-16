@@ -194,7 +194,7 @@ bash install.sh --uninstall              # restore backups + remove launcher
 
 This installs the skill, creates a `socialclaw` launcher in `~/.local/bin`, and installs dependencies.
 
-**Authentication** — get your Bearer Token from [developer.twitter.com](https://developer.twitter.com/) and set it:
+**Authentication** — get your Bearer Token from [developer.x.com](https://developer.x.com/) and set it:
 
 ```bash
 export X_API_BEARER_TOKEN="your_bearer_token_here"
@@ -286,7 +286,7 @@ Every API response is saved as JSON in `~/.socialclaw/data/`. You keep every res
 
 You're here. One function call = one intelligence report. $0.08, not $49/month.
 
-`bash install.sh` or `CHAIN=solana bash install.sh`
+`bash install.sh`
 
 </td>
 <td width="50%">
@@ -294,7 +294,7 @@ You're here. One function call = one intelligence report. $0.08, not $49/month.
 ### [ClawRouter](https://github.com/BlockRunAI/ClawRouter)
 **LLM router for autonomous agents**
 
-41+ models, smart routing, x402 USDC payments. Your agent picks the best model at the best price automatically.
+41+ models, smart routing, automatic model selection. Your agent picks the best model at the best price automatically.
 
 `curl -fsSL https://blockrun.ai/ClawRouter-update | bash`
 
@@ -304,13 +304,13 @@ You're here. One function call = one intelligence report. $0.08, not $49/month.
 </tr>
 </table>
 
-> **Together:** SocialClaw pulls the intelligence. ClawRouter routes your LLM calls. Same wallet, same payment layer. Your agent's full stack.
+> **Together:** SocialClaw pulls the intelligence. ClawRouter routes your LLM calls. Your agent's full stack.
 
 ---
 
 <div align="center">
 
-**[x.com/developer](https://developer.twitter.com/)** · **[hello@blockrun.ai](mailto:hello@blockrun.ai)**
+**[developer.x.com](https://developer.x.com/)** · **[hello@blockrun.ai](mailto:hello@blockrun.ai)**
 
 MIT
 

@@ -56,7 +56,7 @@ def _ensure_deps():
 class XClient:
     """Thin wrapper around the X (Twitter) API v2."""
 
-    BASE = "https://api.twitter.com/2"
+    BASE = "https://api.x.com/2"
 
     def __init__(self, bearer_token: str, timeout: float = 30.0):
         import requests
@@ -81,15 +81,37 @@ class XClient:
                 status = exc.response.status_code if exc.response is not None else "?"
                 if status == 401:
                     raise RuntimeError(
-                        f"X API auth failed (401) — check your X_API_BEARER_TOKEN"
+                        "X API auth failed (401) — check your X_API_BEARER_TOKEN. "
+                        "Get a token at https://developer.x.com/"
                     ) from exc
                 if status == 403:
                     raise RuntimeError(
-                        f"X API access denied (403) for {path} — your token may lack required permissions"
+                        f"X API access denied (403) for {path} — your token may lack "
+                        "required permissions. Check your X Developer Portal app settings "
+                        "at https://developer.x.com/"
                     ) from exc
                 if status == 429:
+                    reset = (
+                        exc.response.headers.get("x-rate-limit-reset", "")
+                        if exc.response is not None
+                        else ""
+                    )
+                    if reset:
+                        try:
+                            from datetime import datetime, timezone
+                            reset_dt = datetime.fromtimestamp(int(reset), tz=timezone.utc)
+                            reset_str = reset_dt.strftime("%H:%M:%S UTC")
+                        except (ValueError, OSError):
+                            reset_str = reset
+                    else:
+                        reset_str = "a moment"
                     raise RuntimeError(
-                        f"X API rate limit reached (429) — wait before retrying"
+                        f"X API rate limit reached (429) — retry after {reset_str}. "
+                        "See https://docs.x.com/x-api/rate-limits"
+                    ) from exc
+                if status == 503:
+                    raise RuntimeError(
+                        "X API temporarily unavailable (503) — please retry in a moment"
                     ) from exc
             raise
         return r.json()
@@ -111,12 +133,17 @@ def _norm_user(u: dict) -> dict:
         "userName": u.get("username", ""),
         "name": u.get("name", ""),
         "description": u.get("description", ""),
+        "location": u.get("location", ""),
+        "url": u.get("url", ""),
+        "profileImageUrl": u.get("profile_image_url", ""),
+        "createdAt": u.get("created_at", ""),
         "followers": m.get("followers_count", 0),
         "followersCount": m.get("followers_count", 0),
         "following": m.get("following_count", 0),
         "followingCount": m.get("following_count", 0),
         "statusesCount": m.get("tweet_count", 0),
         "tweetsCount": m.get("tweet_count", 0),
+        "listedCount": m.get("listed_count", 0),
         "isBlueVerified": u.get("verified", False),
         "id": u.get("id", ""),
         # Keep legacy followers_count key used in follower-list display
@@ -132,12 +159,16 @@ def _norm_tweet(tw: dict, users_by_id: dict) -> dict:
     return {
         "id": tw.get("id", ""),
         "text": tw.get("text", ""),
+        "lang": tw.get("lang", ""),
         "author": _norm_user(raw_author),
         "likeCount": m.get("like_count", 0),
         "retweetCount": m.get("retweet_count", 0),
         "replyCount": m.get("reply_count", 0),
+        "quoteCount": m.get("quote_count", 0),
         "viewCount": m.get("impression_count", 0),
+        "bookmarkCount": m.get("bookmark_count", 0),
         "createdAt": tw.get("created_at", ""),
+        "conversationId": tw.get("conversation_id", ""),
     }
 
 
@@ -148,8 +179,8 @@ def _extract_users(data: dict) -> dict:
 
 # ── X API v2 Endpoint Functions ─────────────────────────────────
 
-_TWEET_FIELDS = "public_metrics,created_at,author_id,conversation_id"
-_USER_FIELDS = "public_metrics,description,username,name,verified"
+_TWEET_FIELDS = "public_metrics,created_at,author_id,conversation_id,lang,entities"
+_USER_FIELDS = "public_metrics,description,username,name,verified,created_at,location,url,profile_image_url"
 _EXPANSIONS = "author_id"
 
 
@@ -430,7 +461,7 @@ def _get_client() -> XClient:
         print("  Set the X_API_BEARER_TOKEN environment variable.")
         print("  Or save your token to ~/.socialclaw/api_key")
         print()
-        print("  Get your Bearer Token at: https://developer.twitter.com/")
+        print("  Get your Bearer Token at: https://developer.x.com/")
         sys.exit(1)
     return XClient(api_key)
 
@@ -1461,7 +1492,7 @@ def _print_cost(client: XClient):
 def _print_help():
     print("SocialClaw v3 — X/Twitter Marketing Intelligence")
     print()
-    print("  Powered by the official X API v2.")
+    print("  Powered by the official X API v2 (https://docs.x.com/x-api/introduction).")
     print("  Set X_API_BEARER_TOKEN to authenticate.")
     print("  Optionally set OPENAI_API_KEY to enable AI-generated reply drafts.")
     print()
@@ -1499,7 +1530,7 @@ def _print_help():
     print("  socialclaw compare @openai @anthropic")
     print()
     print("AUTH: Set X_API_BEARER_TOKEN environment variable or save to ~/.socialclaw/api_key")
-    print("      Get your Bearer Token at: https://developer.twitter.com/")
+    print("      Get your Bearer Token at: https://developer.x.com/")
     print("DATA: All responses saved to ~/.socialclaw/data/")
 
 
