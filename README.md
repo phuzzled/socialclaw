@@ -1,13 +1,13 @@
-# SocialClaw
+# SocialSwag
 
 <div align="center">
 
-<img src="assets/banner.png" alt="SocialClaw" width="600" />
+<img src="assets/banner.png" alt="SocialSwag" width="600" />
 
-<h3>X/Twitter intelligence + content optimization for your AI agent.</h3>
+<h3>X/Twitter intelligence + AI-powered content agent.</h3>
 
-<p>Research → Write → Optimize → Visualize → Monitor. Full loop.<br>
-One command → structured data → your agent acts on it. $0.08 per report.</p>
+<p>Research → Analyze → Write → Optimize → Visualize. Full loop.<br>
+One command → structured data → your agent acts on it.</p>
 
 <br />
 
@@ -16,9 +16,21 @@ One command → structured data → your agent acts on it. $0.08 per report.</p>
 [![Gemini CLI](https://img.shields.io/badge/Gemini_CLI-Compatible-4285F4.svg)](https://github.com/google-gemini/gemini-cli)
 [![Cursor](https://img.shields.io/badge/Cursor-Compatible-000000.svg)](https://cursor.com)
 
-[What Can I Do?](#what-can-i-do) · [Get Started](#get-started) · [Pricing](docs/pricing.md) · [API Reference](docs/api-reference.md)
+[What Can I Do?](#what-can-i-do) · [Get Started](#get-started) · [Pricing](docs/pricing.md) · [API Reference](docs/api-reference.md) · [Configuration](#configuration)
 
 </div>
+
+---
+
+## What Is SocialSwag?
+
+SocialSwag is an AI-powered X/Twitter intelligence platform that combines:
+
+- **Official X API v2** — structured, real-time data
+- **OpenRouter AI** — x-ai/grok-4.20-beta as default, with 100+ models available
+- **Nano Banana 2** — image generation for posts
+
+Perfect for autonomous agents that need to research, analyze, and create content on X/Twitter.
 
 ---
 
@@ -27,7 +39,7 @@ One command → structured data → your agent acts on it. $0.08 per report.</p>
 ### Find out what to post right now
 
 ```bash
-socialclaw radar "AI agents"
+socialswag radar "AI agents"
 ```
 
 ```
@@ -50,7 +62,7 @@ Your agent sees real view counts, finds the wave, and tells you exactly what to 
 ### Know who to engage with
 
 ```bash
-socialclaw hitlist "Solana DeFi"
+socialswag hitlist "Solana DeFi"
 ```
 
 ```
@@ -72,7 +84,7 @@ socialclaw hitlist "Solana DeFi"
 ### Understand any account in 10 seconds
 
 ```bash
-socialclaw insight @jessepollak
+socialswag insight @jessepollak
 ```
 
 ```
@@ -97,7 +109,7 @@ Before you DM someone, pitch them, or reply to their thread — know their actua
 ### Find the right people in any niche
 
 ```bash
-socialclaw scout "x402 crypto"
+socialswag scout "x402"
 ```
 
 ```
@@ -114,7 +126,7 @@ Building a product? Find the 10 people who actually matter in your space. Your a
 ### Compare yourself against competitors
 
 ```bash
-socialclaw compare @you @competitor
+socialswag compare @you @competitor
 ```
 
 ```
@@ -134,7 +146,7 @@ Stop wondering if you're winning. Know exactly where you stand and what to fix.
 ### Get your morning brief
 
 ```bash
-socialclaw brief @yourhandle
+socialswag brief @yourhandle
 ```
 
 ```
@@ -157,8 +169,8 @@ Wake up knowing exactly what happened and what to do first. Your agent monitors 
 ### Look up any tweet or thread
 
 ```bash
-socialclaw tweet https://x.com/elonmusk/status/1234567890
-socialclaw thread https://x.com/VitalikButerin/status/9876543210
+socialswag tweet https://x.com/elonmusk/status/1234567890
+socialswag thread https://x.com/VitalikButerin/status/9876543210
 ```
 
 Get full tweet data, engagement metrics, replies, and complete threads — all structured, all actionable.
@@ -168,54 +180,191 @@ Get full tweet data, engagement metrics, replies, and complete threads — all s
 ### Deep analytics on any creator
 
 ```bash
-socialclaw analytics @VitalikButerin
+socialswag analytics @VitalikButerin
 ```
 
 Posting patterns, audience composition, engagement trajectory, content performance by topic. Everything you need to understand what makes an account grow.
 
 ---
 
+### AI-Powered Reply Drafts
+
+```bash
+socialswag engage @yourhandle
+```
+
+SocialSwag uses OpenRouter (default: x-ai/grok-4.20-beta) to generate contextually relevant reply drafts. The AI analyzes recent mentions and suggests responses.
+
+---
+
 ## Get Started
 
-**Claude Code** (one command):
-```
-try https://github.com/phuzzled/socialclaw
-```
+**Clone and install:**
 
-**Any agent / CLI**:
 ```bash
-git clone https://github.com/phuzzled/socialclaw && cd socialclaw
-bash install.sh                          # install SocialClaw (safe mode)
-MODE=takeover bash install.sh            # also replace sibling x402 skills
+git clone https://github.com/BlockRunAI/socialswag && cd socialswag
+bash install.sh                          # install SocialSwag (safe mode)
+MODE=takeover bash install.sh            # also replace sibling skills
 MODE=force bash install.sh               # overwrite every sibling skill
 bash install.sh --dry-run                # preview changes
 bash install.sh --uninstall              # restore backups + remove launcher
 ```
 
-This installs the skill, creates a `socialclaw` launcher in `~/.local/bin`, and installs dependencies.
+This installs the skill, creates a `socialswag` launcher in `~/.local/bin`, and installs dependencies.
 
-**Authentication** — get your Bearer Token from [developer.x.com](https://developer.x.com/) and set it:
+---
+
+## Configuration
+
+### Required: X API Bearer Token
+
+Get your Bearer Token from [developer.x.com](https://developer.x.com/) and set it:
 
 ```bash
 export X_API_BEARER_TOKEN="your_bearer_token_here"
 # Or save permanently:
-mkdir -p ~/.socialclaw && echo "your_token" > ~/.socialclaw/api_key
+mkdir -p ~/.socialswag && echo "your_token" > ~/.socialswag/api_key
 ```
 
-No crypto wallets. No subscriptions. One API key and you're running.
+### Optional: OpenRouter API Key (AI Analysis)
+
+**Default model: x-ai/grok-4.20-beta**
+
+```bash
+export OPENROUTER_API_KEY="your_openrouter_key"
+# Change model (any from openrouter.ai/models):
+export OPENROUTER_MODEL="anthropic/claude-3.5-sonnet"
+# or:
+export OPENROUTER_MODEL="google/gemini-2.0-flash-exp"
+```
+
+Get your OpenRouter key at [openrouter.ai](https://openrouter.ai/).
+
+### Optional: OpenAI API Key (Fallback AI)
+
+```bash
+export OPENAI_API_KEY="your_openai_key"
+```
+
+Used as fallback if no OpenRouter key is set.
+
+### Optional: Google API Key (Image Generation)
+
+```bash
+export GOOGLE_API_KEY="your_google_key"
+```
+
+Enables the `image` workflow using Nano Banana 2 (Gemini 3.1 Flash Image). Get your key at [aistudio.google.com](https://aistudio.google.com/).
 
 ---
 
-## Why API Access beats $49/month
+## All Commands
 
-|  | Dashboard tools | SocialClaw |
-|---|---|---|
-| **You pay** | $49-99/month whether you use it or not | X API subscription + one command |
-| **You get** | Charts you read with your eyes | JSON your agent processes instantly |
-| **You do** | Log in, click around, screenshot results | One function call, structured output |
-| **Your agent can use it** | No (human-only UI) | Yes (that's the whole point) |
+### Intelligence (Research & Analysis)
 
-Every API response is saved as JSON in `~/.socialclaw/data/`. You keep every result.
+| Command | What you get | API Calls |
+|---------|-------------|-----------|
+| `insight @handle` | Full account analysis: profile, followers, mentions, tweets | ~4 |
+| `radar <topic>` | Trending topics + latest tweets + rising articles | ~2 |
+| `search <query>` | Search X with structured results + top tweets | ~2 |
+| `compare @a @b` | Side-by-side account comparison | ~6 |
+| `scout <topic>` | Find top voices in any niche | ~1 |
+| `hitlist <topic>` | High-engagement conversations to reply to | ~1 |
+| `audience @handle` | Follower segmentation by influence tier | ~2 |
+| `brief @handle` | Morning brief: mentions, trends, action items | ~3 |
+| `analytics @handle` | Deep author intelligence report | ~2 |
+| `tweet <id/url>` | Look up specific tweet + replies | ~2 |
+| `thread <id/url>` | Get full tweet thread | ~1 |
+| `engage @handle` | Find mentions + AI-generated reply drafts | ~3 |
+| `check @handle` | Verify posted tweets + engagement metrics | ~3 |
+
+### Content Creation (Write & Optimize)
+
+| Command | What you get | Cost |
+|---------|-------------|------|
+| `draft "topic"` | Algorithm-optimized post with 3 variations + strategy explanation | Free |
+| `review` | Score your draft (1-10) with checklist audit + optimized rewrite | Free |
+| `image "description"` | X-optimized image via Nano Banana 2 (high contrast, bold colors, clean composition) | ~$0.04/call |
+
+**Full loop:** Research (`radar`/`scout`) → Write (`draft`) → Optimize (`review`) → Visualize (`image`) → Monitor (`brief`/`analytics`)
+
+---
+
+## Cost Estimation
+
+X API uses **consumption-based billing** — pay only for what you use. See [developer.x.com](https://developer.x.com/) for full details.
+
+### X API Pricing (Pay-per-use)
+
+| Resource | Cost per unit |
+|----------|---------------|
+| **Posts: Read** (tweets, search) | $0.005/resource |
+| **User: Read** (profiles, followers, mentions) | $0.010/resource |
+
+### X API Cost Per Workflow
+
+| Workflow | X API Calls | Cost |
+|----------|-------------|------|
+| `radar <topic>` | 2 (search) | $0.01 |
+| `search <query>` | 2 (search) | $0.01 |
+| `scout <topic>` | 1 (search) | $0.005 |
+| `hitlist <topic>` | 1 (search) | $0.005 |
+| `thread <id/url>` | 1 (search) | $0.005 |
+| `tweet <id/url>` | 2 (tweet + search) | $0.01 |
+| `analytics @handle` | 2 (user + tweets) | $0.02 |
+| `brief @handle` | 3 (user + mentions + followers) | $0.04 |
+| `engage @handle` | 3 (user + mentions + search) | $0.04 |
+| `check @handle` | 3 (user + tweets + mentions) | $0.04 |
+| `audience @handle` | 2 (user + followers) | $0.02 |
+| `insight @handle` | 4 (user + mentions + followers + tweets) | $0.05 |
+| `compare @a @b` | 6 (2× user + 2× mentions + 2× followers) | $0.08 |
+| `draft "topic"` | 1 (search) | $0.005 |
+| `review` | 0 | Free |
+
+### OpenRouter AI (Optional)
+
+| Model | Input Cost | Output Cost | Est. per `engage` |
+|-------|------------|-------------|-------------------|
+| **x-ai/grok-4.20-beta** (default) | ~$2/M tokens | ~$10/M tokens | ~$0.003 |
+| anthropic/claude-3.5-sonnet | ~$3/M | ~$15/M | ~$0.005 |
+| google/gemini-2.0-flash-exp | ~$0 | ~$0 | Free |
+
+Set `OPENROUTER_API_KEY` at [openrouter.ai](https://openrouter.ai/).
+
+### Image Generation (Optional)
+
+| Provider | Model | Cost per image |
+|----------|-------|----------------|
+| Google AI | Nano Banana 2 (Gemini 3.1 Flash) | ~$0.04 |
+
+Set `GOOGLE_API_KEY` at [aistudio.google.com](https://aistudio.google.com/).
+
+### Monthly Cost Example
+
+**Heavy usage (500 workflows/month):**
+
+| Workflow | Count | X API Cost |
+|----------|-------|------------|
+| `radar` | 200 | $2.00 |
+| `insight` | 100 | $5.00 |
+| `engage` | 100 | $4.00 |
+| `search` | 100 | $1.00 |
+
+- X API: ~$12/month
+- OpenRouter (100 `engage` calls): ~$0.30/month
+- **Total: ~$13-15/month** (plus image generation if used)
+
+---
+
+## How It Works
+
+- **X API v2** — Direct access to Twitter's data through their public API (`api.x.com/2`)
+- **OpenRouter AI** — Default model is x-ai/grok-4.20-beta. Change via `OPENROUTER_MODEL` env var
+- **OpenAI fallback** — Uses gpt-4o-mini if no OpenRouter key provided
+- **Image generation** — Nano Banana 2 (Gemini 3.1 Flash Image) via `GOOGLE_API_KEY`
+- **Data is yours** — Every response saved to `~/.socialswag/data/`
+
+[Full API Reference](docs/api-reference.md)
 
 ---
 
@@ -225,54 +374,23 @@ Every API response is saved as JSON in `~/.socialclaw/data/`. You keep every res
 |----------|-----|
 | **Claude Code** | Installs as a skill. Say "analyze @elonmusk on Twitter". |
 | **OpenAI Codex** | Install `requests>=2.28.0`, set `X_API_BEARER_TOKEN`. |
-| **Gemini CLI** | Auto-installs to `~/.gemini/antigravity/skills/socialclaw`. |
+| **Gemini CLI** | Auto-installs to `~/.gemini/antigravity/skills/socialswag`. |
 | **Cursor / Windsurf** | Agent reads CLAUDE.md, calls CLI via terminal. |
-| **Any terminal** | `socialclaw radar "topic"` |
+| **Any terminal** | `socialswag radar "topic"` |
 | **Your own agent** | Use `requests` to call X API v2 with your Bearer Token. |
 
 ---
 
-## All Commands
+## Why API Access beats $49/month
 
-### Intelligence (Research & Analysis)
+|  | Dashboard tools | SocialSwag |
+|---|---|---|
+| **You pay** | $49-99/month whether you use it or not | X API subscription + one command |
+| **You get** | Charts you read with your eyes | JSON your agent processes instantly |
+| **You do** | Log in, click around, screenshot results | One function call, structured output |
+| **Your agent can use it** | No (human-only UI) | Yes (that's the whole point) |
 
-| Command | What you get | Cost |
-|---------|-------------|------|
-| `insight @handle` | Full account analysis: profile, followers, mentions, tweets | ~$0.08 |
-| `radar <topic>` | Trending topics + latest tweets + rising articles | ~$0.07 |
-| `search <query>` | Search X with structured results + top tweets | ~$0.06 |
-| `compare @a @b` | Side-by-side account comparison | ~$0.15 |
-| `scout <topic>` | Find top voices in any niche | ~$0.07 |
-| `hitlist <topic>` | High-engagement conversations to reply to | ~$0.03 |
-| `audience @handle` | Follower segmentation by influence tier | ~$0.15 |
-| `brief @handle` | Morning brief: mentions, trends, action items | ~$0.08 |
-| `analytics @handle` | Deep author intelligence report | ~$0.02 |
-| `tweet <id/url>` | Look up specific tweet + replies | ~$0.16 |
-| `thread <id/url>` | Get full tweet thread | ~$0.03 |
-| `engage @handle` | Find mentions + AI-generated reply drafts | ~$0.10 |
-| `check @handle` | Verify posted tweets + engagement metrics | ~$0.05 |
-
-### Content Creation (Write & Optimize)
-
-| Command | What you get | Cost |
-|---------|-------------|------|
-| `draft "topic"` | Algorithm-optimized post with 3 variations + strategy explanation | ~$0.03 |
-| `review` | Score your draft (1-10) with checklist audit + optimized rewrite | Free |
-| `image "description"` | X-optimized image via Nano Banana 2 (high contrast, bold colors, clean composition) | ~$0.05 |
-
-**Full loop:** Research (`radar`/`scout`) → Write (`draft`) → Optimize (`review`) → Visualize (`image`) → Monitor (`brief`/`analytics`)
-
----
-
-## How It Works
-
-- **API key auth.** Set `X_API_BEARER_TOKEN` — that's your authentication.
-- **Official X API v2.** Direct access to Twitter's data through their public API.
-- **Optional AI.** Set `OPENAI_API_KEY` to enable AI-generated reply drafts in `engage`.
-- **Image generation.** Set `GOOGLE_API_KEY` to enable `image` via [Nano Banana 2](https://ai.google.dev/gemini-api/docs/image-generation) (Gemini 3.1 Flash Image). Get your key at [aistudio.google.com](https://aistudio.google.com/).
-- **Data is yours.** Every response saved to `~/.socialclaw/data/`.
-
-[Full API Reference](docs/api-reference.md)
+Every API response is saved as JSON in `~/.socialswag/data/`. You keep every result.
 
 ---
 
@@ -282,10 +400,10 @@ Every API response is saved as JSON in `~/.socialclaw/data/`. You keep every res
 <tr>
 <td width="50%">
 
-### SocialClaw
+### SocialSwag
 **X/Twitter intelligence for your agent**
 
-You're here. One function call = one intelligence report. $0.08, not $49/month.
+You're here. One function call = one intelligence report.
 
 `bash install.sh`
 
@@ -305,13 +423,13 @@ You're here. One function call = one intelligence report. $0.08, not $49/month.
 </tr>
 </table>
 
-> **Together:** SocialClaw pulls the intelligence. ClawRouter routes your LLM calls. Your agent's full stack.
+> **Together:** SocialSwag pulls the intelligence. ClawRouter routes your LLM calls. Your agent's full stack.
 
 ---
 
 <div align="center">
 
-**[developer.x.com](https://developer.x.com/)** · **[hello@blockrun.ai](mailto:hello@blockrun.ai)**
+**[developer.x.com](https://developer.x.com/)** · **[openrouter.ai](https://openrouter.ai/)** · **[hello@blockrun.ai](mailto:hello@blockrun.ai)**
 
 MIT
 

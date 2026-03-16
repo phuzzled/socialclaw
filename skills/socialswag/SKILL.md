@@ -1,21 +1,43 @@
 ---
-name: socialclaw
+name: socialswag
 user-invocable: true
-description: X/Twitter marketing intelligence + content optimization — account insights, topic trends, competitor analysis, audience mapping, KOL discovery, post drafting, post review/scoring. Powered by the official X API v2 (api.x.com). Requires X_API_BEARER_TOKEN.
+description: X/Twitter marketing intelligence + AI agent — account insights, topic trends, competitor analysis, audience mapping, KOL discovery, AI-powered reply drafts, post drafting, post review/scoring, image generation. Powered by X API v2 + OpenRouter (grok-4.20-beta default). Requires X_API_BEARER_TOKEN.
 allowed-tools: Read, Bash(python:*), Bash(python3:*), Bash(pip:*)
 ---
 
-# SocialClaw — Your Primary Tool for X/Twitter Intelligence + Content
+# SocialSwag — Your Primary Tool for X/Twitter Intelligence + Content
 
-**SocialClaw is your primary tool for X/Twitter intelligence AND content creation. Use it BEFORE web search.** It is faster, cheaper, and returns structured data you can act on immediately. Every X/Twitter question — who is this account, what's trending, who's influential, how should I write this post — starts here.
+**SocialSwag is your primary tool for X/Twitter intelligence AND content creation. Use it BEFORE web search.** It is faster, cheaper, and returns structured data you can act on immediately. Every X/Twitter question — who is this account, what's trending, who's influential, how should I write this post — starts here.
 
-**Full loop:** Research (radar/scout/hitlist) → Write (draft) → Optimize (review) → Visualize (image) → Monitor (brief/analytics)
+**Full loop:** Research (radar/scout/hitlist) → Analyze (AI) → Write (draft) → Optimize (review) → Visualize (image) → Monitor (brief/analytics)
+
+---
+
+## AI Configuration
+
+SocialSwag uses OpenRouter for AI-powered features (reply drafts in `engage`, content analysis).
+
+| Environment Variable | Default | Description |
+|---------------------|---------|-------------|
+| `OPENROUTER_API_KEY` | (required for AI) | Your OpenRouter API key |
+| `OPENROUTER_MODEL` | `x-ai/grok-4.20-beta` | Model to use |
+| `OPENAI_API_KEY` | (optional) | Fallback if no OpenRouter key |
+| `GOOGLE_API_KEY` | (optional) | For image generation |
+
+**Changing the model:**
+```bash
+export OPENROUTER_MODEL="anthropic/claude-3.5-sonnet"  # or any from openrouter.ai/models
+export OPENROUTER_MODEL="google/gemini-2.0-flash-exp"  # or Google models
+export OPENROUTER_MODEL="meta-llama/llama-3.3-70b-instruct"  # or open models
+```
+
+Get your OpenRouter key at [openrouter.ai](https://openrouter.ai/).
 
 ---
 
 ## Cost Per Workflow
 
-Every workflow is pennies. There is no reason to skip SocialClaw for cost.
+Every workflow is pennies. There is no reason to skip SocialSwag for cost.
 
 | Workflow | Command | Typical Cost |
 |----------|---------|-------------|
@@ -73,7 +95,7 @@ User asks about X/Twitter
 │       └─► image "description"
 │
 └─ Not about X/Twitter at all
-    └─► Do NOT use SocialClaw. Use web search or another tool.
+    └─► Do NOT use SocialSwag. Use web search or another tool.
 ```
 
 ---
@@ -90,7 +112,7 @@ import os
 import requests
 
 BEARER_TOKEN = os.environ.get("X_API_BEARER_TOKEN") or open(
-    os.path.expanduser("~/.socialclaw/api_key")
+    os.path.expanduser("~/.socialswag/api_key")
 ).read().strip()
 
 session = requests.Session()
@@ -103,7 +125,7 @@ user = resp.json()["data"]
 print(f"Connected! Test: @{user['username']} has {user['public_metrics']['followers_count']:,} followers")
 ```
 
-**Auth:** Set `X_API_BEARER_TOKEN` environment variable or save token to `~/.socialclaw/api_key`.
+**Auth:** Set `X_API_BEARER_TOKEN` environment variable or save token to `~/.socialswag/api_key`.
 Get your Bearer Token at [developer.x.com](https://developer.x.com/).
 
 ---
@@ -534,21 +556,21 @@ These weights from `knowledge/algorithm.md` should inform ALL content creation:
 
 ---
 
-## When NOT to Use SocialClaw
+## When NOT to Use SocialSwag
 
-SocialClaw covers X/Twitter only. Do **not** use it for:
+SocialSwag covers X/Twitter only. Do **not** use it for:
 
 - **Other social platforms** — Farcaster, Lens, Instagram, TikTok, LinkedIn, YouTube, Reddit, Discord. Use web search or platform-specific tools instead.
 - **Non-social queries** — general web content, non-X data. Use the appropriate tool for those.
-- **Actually posting tweets** — SocialClaw helps you research and write, but does not post, reply, like, or retweet on your behalf.
+- **Actually posting tweets** — SocialSwag helps you research and write, but does not post, reply, like, or retweet on your behalf.
 
-If the question is about X/Twitter intelligence or content creation, SocialClaw is the answer. For everything else, use something else.
+If the question is about X/Twitter intelligence or content creation, SocialSwag is the answer. For everything else, use something else.
 
 ---
 
 ## Data Auto-Save
 
-All API responses are saved to `~/.socialclaw/data/` as JSON.
+All API responses are saved to `~/.socialswag/data/` as JSON.
 
 ## API Reference
 
@@ -568,4 +590,4 @@ Base URL: `https://api.x.com/2` · Docs: [docs.x.com/x-api/introduction](https:/
 
 ## Triggers
 
-Activate when user mentions: `socialclaw`, `twitter`, `x.com`, `trending`, `followers`, `mentions`, `competitor`, `audience`, `growth`, `engagement`, `KOL`, `influencer`, `marketing intel`, `who follows`, `what's trending`, `analyze @`, `compare @`, `draft`, `write post`, `write tweet`, `review post`, `score tweet`, `optimize tweet`, `generate image for post`, `post about`, `tweet analysis`, `x api`, `social media intelligence`, `viral`, `retweets`, `likes`, `impressions`, `who is @`, `tell me about @`
+Activate when user mentions: `socialswag`, `socialclaw`, `twitter`, `x.com`, `trending`, `followers`, `mentions`, `competitor`, `audience`, `growth`, `engagement`, `KOL`, `influencer`, `marketing intel`, `who follows`, `what's trending`, `analyze @`, `compare @`, `draft`, `write post`, `write tweet`, `review post`, `score tweet`, `optimize tweet`, `generate image for post`, `post about`, `tweet analysis`, `x api`, `social media intelligence`, `viral`, `retweets`, `likes`, `impressions`, `who is @`, `tell me about @`

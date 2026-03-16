@@ -1,14 +1,22 @@
 #!/usr/bin/env python3
 """
-SocialClaw v3 — X/Twitter Marketing Intelligence
+SocialSwag — X/Twitter Marketing Intelligence + AI Agent
 
-Official X API v2 for structured data. Optional OpenAI for AI analysis.
+Official X API v2 for structured data. OpenRouter (x-ai/grok-4.20-beta default) for AI analysis.
 Nano Banana 2 (Gemini 3.1 Flash Image) for image generation.
 
 Data layer:
   - X API v2 (primary): user info, search, mentions, followers, tweets
-  - OpenAI (optional, set OPENAI_API_KEY): AI-powered analysis
-  - Nano Banana 2 (optional, set GOOGLE_API_KEY): image generation
+  - OpenRouter (default): AI-powered analysis via x-ai/grok-4.20-beta
+  - OpenAI (fallback): AI-powered analysis if OPENAI_API_KEY set
+  - Nano Banana 2 (optional): image generation via GOOGLE_API_KEY
+
+Environment:
+  - X_API_BEARER_TOKEN: Required for X API access
+  - OPENROUTER_API_KEY: For AI analysis (default, x-ai/grok-4.20-beta)
+  - OPENROUTER_MODEL: Override default model (e.g., "anthropic/claude-3.5-sonnet")
+  - OPENAI_API_KEY: Fallback for AI analysis if no OpenRouter key
+  - GOOGLE_API_KEY: For image generation
 
 Workflows:
   1. insight @username     — deep-dive account analysis
@@ -36,9 +44,9 @@ from typing import Any, Dict, List, Optional
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 try:
-    from scripts.utils.config import get_api_key, get_openai_key
+    from scripts.utils.config import get_api_key, get_openai_key, get_openrouter_key, get_openrouter_model
 except ImportError:
-    from utils.config import get_api_key, get_openai_key
+    from utils.config import get_api_key, get_openai_key, get_openrouter_key, get_openrouter_model
 
 
 def _ensure_deps():
@@ -461,14 +469,14 @@ def _get_client() -> XClient:
     if not api_key:
         print("  Error: No X API Bearer Token found.")
         print("  Set the X_API_BEARER_TOKEN environment variable.")
-        print("  Or save your token to ~/.socialclaw/api_key")
+        print("  Or save your token to ~/.socialswag/api_key")
         print()
         print("  Get your Bearer Token at: https://developer.x.com/")
         sys.exit(1)
     return XClient(api_key)
 
 
-DATA_DIR = os.path.expanduser("~/.socialclaw/data")
+DATA_DIR = os.path.expanduser("~/.socialswag/data")
 
 
 def _save_local(endpoint: str, body: dict, result):
@@ -497,19 +505,42 @@ def _save_local(endpoint: str, body: dict, result):
 
 def _ai_analyze(prompt: str, system: str = None) -> Optional[str]:
     """
-    Optional AI analysis using OpenAI if OPENAI_API_KEY is set.
+    Optional AI analysis using OpenRouter (default: x-ai/grok-4.20-beta).
+    Falls back to OpenAI if OPENAI_API_KEY is set but OPENROUTER_API_KEY is not.
 
     Returns the AI response string, or None if no key is configured.
     """
+    # Priority: OpenRouter > OpenAI
+    openrouter_key = get_openrouter_key()
     openai_key = get_openai_key()
-    if not openai_key:
+
+    if not openrouter_key and not openai_key:
         return None
+
     try:
         import requests as _req
         messages = []
         if system:
             messages.append({"role": "system", "content": system})
         messages.append({"role": "user", "content": prompt})
+
+        # Use OpenRouter if available
+        if openrouter_key:
+            model = get_openrouter_model()
+            r = _req.post(
+                "https://openrouter.ai/api/v1/chat/completions",
+                json={"model": model, "messages": messages, "max_tokens": 3000},
+                headers={
+                    "Authorization": f"Bearer {openrouter_key}",
+                    "HTTP-Referer": "https://socialswag.ai",
+                    "X-Title": "SocialSwag",
+                },
+                timeout=60,
+            )
+            r.raise_for_status()
+            return r.json()["choices"][0]["message"]["content"]
+
+        # Fallback to OpenAI
         r = _req.post(
             "https://api.openai.com/v1/chat/completions",
             json={"model": "gpt-4o-mini", "messages": messages, "max_tokens": 3000},
@@ -1070,7 +1101,7 @@ def engage(username: str, product: str = None):
     username = username.lstrip("@")
     client = _get_client()
 
-    products_context = product or "SocialClaw (X/Twitter intelligence)"
+    products_context = product or "SocialSwag (X/Twitter intelligence)"
 
     print(f"\n{'=' * 60}")
     print(f"  SOCIALCLAW ENGAGE — @{username}")
@@ -1492,7 +1523,7 @@ def _print_cost(client: XClient):
 # ── CLI ─────────────────────────────────────────────────────────
 
 def _print_help():
-    print("SocialClaw v3 — X/Twitter Marketing Intelligence")
+    print("SocialSwag v3 — X/Twitter Marketing Intelligence")
     print()
     print("  Powered by the official X API v2 (https://docs.x.com/x-api/introduction).")
     print("  Set X_API_BEARER_TOKEN to authenticate.")
@@ -1520,20 +1551,20 @@ def _print_help():
     print("    engage @username           Find mentions & generate reply drafts")
     print()
     print("EXAMPLES:")
-    print("  socialclaw insight @elonmusk")
-    print("  socialclaw audience @jack")
-    print("  socialclaw search 'AI agents'")
-    print("  socialclaw radar 'AI infrastructure'")
-    print("  socialclaw scout 'machine learning'")
-    print("  socialclaw hitlist 'open source AI'")
-    print("  socialclaw tweet https://x.com/user/status/1234567890123456789")
-    print("  socialclaw thread https://x.com/user/status/1234567890123456789")
-    print("  socialclaw analytics @VitalikButerin")
-    print("  socialclaw compare @openai @anthropic")
+    print("  socialswag insight @elonmusk")
+    print("  socialswag audience @jack")
+    print("  socialswag search 'AI agents'")
+    print("  socialswag radar 'AI infrastructure'")
+    print("  socialswag scout 'machine learning'")
+    print("  socialswag hitlist 'open source AI'")
+    print("  socialswag tweet https://x.com/user/status/1234567890123456789")
+    print("  socialswag thread https://x.com/user/status/1234567890123456789")
+    print("  socialswag analytics @VitalikButerin")
+    print("  socialswag compare @openai @anthropic")
     print()
-    print("AUTH: Set X_API_BEARER_TOKEN environment variable or save to ~/.socialclaw/api_key")
+    print("AUTH: Set X_API_BEARER_TOKEN environment variable or save to ~/.socialswag/api_key")
     print("      Get your Bearer Token at: https://developer.x.com/")
-    print("DATA: All responses saved to ~/.socialclaw/data/")
+    print("DATA: All responses saved to ~/.socialswag/data/")
 
 
 def main():

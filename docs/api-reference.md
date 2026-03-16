@@ -1,6 +1,6 @@
 # API Reference
 
-SocialClaw uses the official [X API v2](https://docs.x.com/x-api/introduction).
+SocialSwag uses the official [X API v2](https://docs.x.com/x-api/introduction).
 
 ## Setup
 
@@ -22,11 +22,11 @@ user = resp.json()["data"]
 print(f"@{user['username']}: {user['public_metrics']['followers_count']:,} followers")
 ```
 
-Or use the SocialClaw CLI (handles auth automatically):
+Or use the SocialSwag CLI (handles auth automatically):
 
 ```bash
 export X_API_BEARER_TOKEN="your_bearer_token_here"
-socialclaw insight @jack
+socialswag insight @jack
 ```
 
 ## Authentication
@@ -38,8 +38,8 @@ Get your Bearer Token from [developer.x.com](https://developer.x.com/).
 export X_API_BEARER_TOKEN="your_bearer_token_here"
 
 # Option 2: config file
-mkdir -p ~/.socialclaw
-echo "your_bearer_token_here" > ~/.socialclaw/api_key
+mkdir -p ~/.socialswag
+echo "your_bearer_token_here" > ~/.socialswag/api_key
 ```
 
 > **Tip:** Never commit your Bearer Token to version control. Use environment variables or the config file.
@@ -50,7 +50,7 @@ All X API v2 requests use: `https://api.x.com/2`
 
 (The legacy `https://api.twitter.com/2` base also works but `api.x.com` is the current canonical URL.)
 
-## X/Twitter Endpoints Used by SocialClaw
+## X/Twitter Endpoints Used by SocialSwag
 
 | Endpoint | What | X API v2 path | Access tier |
 |----------|------|---------------|-------------|
@@ -67,7 +67,7 @@ All X API v2 requests use: `https://api.x.com/2`
 | Tier | Price | Rate limits | Notes |
 |------|-------|-------------|-------|
 | Free | $0 | 1 app, 500K tweets/month write, limited read | Basic lookups only |
-| Basic | $100/month | 10K app read, 5M user read | Most SocialClaw workflows |
+| Basic | $100/month | 10K app read, 5M user read | Most SocialSwag workflows |
 | Pro | $5,000/month | 1M app read | Heavy-usage / commercial |
 | Enterprise | Custom | Unlimited | Full firehose access |
 
@@ -93,7 +93,7 @@ See [docs.x.com/x-api/getting-started/about-x-api](https://docs.x.com/x-api/gett
 
 ## Request Fields
 
-SocialClaw requests these fields for maximum data richness:
+SocialSwag requests these fields for maximum data richness:
 
 **User fields:** `public_metrics,description,username,name,verified,created_at,location,url,profile_image_url`
 
@@ -116,25 +116,53 @@ X API v2 rate limits are per 15-minute window. Key limits (Basic tier):
 
 See [docs.x.com/x-api/rate-limits](https://docs.x.com/x-api/rate-limits) for current values.
 
-On `429 Too Many Requests`, SocialClaw surfaces the `x-rate-limit-reset` epoch timestamp.
+On `429 Too Many Requests`, SocialSwag surfaces the `x-rate-limit-reset` epoch timestamp.
 
 ## AI Models (Optional)
 
-Set `OPENAI_API_KEY` to enable AI-powered reply drafts in the `engage` workflow:
+### OpenRouter (Primary - Default: x-ai/grok-4.20-beta)
+
+```bash
+export OPENROUTER_API_KEY="your_openrouter_key"
+# Optionally change the model:
+export OPENROUTER_MODEL="anthropic/claude-3.5-sonnet"
+socialswag engage @yourhandle
+```
+
+The `engage` workflow uses OpenRouter by default. Get your key at [openrouter.ai](https://openrouter.ai/).
+
+**Popular models:**
+- `x-ai/grok-4.20-beta` (default)
+- `anthropic/claude-3.5-sonnet`
+- `google/gemini-2.0-flash-exp`
+- `meta-llama/llama-3.3-70b-instruct`
+
+### OpenAI (Fallback)
 
 ```bash
 export OPENAI_API_KEY="your_openai_key"
-socialclaw engage @yourhandle
+socialswag engage @yourhandle
 ```
 
-The `engage` workflow uses `gpt-4o-mini` by default (fast, cheap).
+Used as fallback if no OpenRouter key is set. Uses `gpt-4o-mini` by default.
+
+## Image Generation (Optional)
+
+Set `GOOGLE_API_KEY` to enable the `image` workflow using Nano Banana 2 (Gemini 3.1 Flash Image):
+
+```bash
+export GOOGLE_API_KEY="your_google_api_key"
+socialswag image "description"
+```
+
+Cost: ~$0.04 per image. Get your key at [Google AI Studio](https://aistudio.google.com/).
 
 ## Data Auto-Save
 
-All responses saved to `~/.socialclaw/data/` as timestamped JSON.
+All responses saved to `~/.socialswag/data/` as timestamped JSON.
 
 ```
-~/.socialclaw/data/
+~/.socialswag/data/
   20240316_091200_users_info_elonmusk.json
   20240316_091205_tweets_search_recent_AI-agents.json
 ```

@@ -1,12 +1,12 @@
 # Pricing
 
-SocialClaw is free software. You pay only for the underlying services you use.
+SocialSwag is free software. You pay only for the underlying services you use.
 
 ## What You Pay For
 
 ### 1. X API Subscription (required)
 
-SocialClaw calls the official X API v2 ([docs.x.com/x-api](https://docs.x.com/x-api/introduction)).
+SocialSwag calls the official X API v2 ([docs.x.com/x-api](https://docs.x.com/x-api/introduction)).
 You need an X Developer account and access tier:
 
 > **Note:** Pricing is set by X/Twitter and may change. Always check [developer.x.com/en/portal/products](https://developer.x.com/en/portal/products) for current rates.
@@ -14,7 +14,7 @@ You need an X Developer account and access tier:
 | Tier | Monthly cost (approx.) | Recommended for |
 |------|-------------|----------------|
 | **Free** | $0 | Testing, tweet/user lookups only |
-| **Basic** | $100 | Most SocialClaw workflows (search, mentions, followers) |
+| **Basic** | $100 | Most SocialSwag workflows (search, mentions, followers) |
 | **Pro** | $5,000 | High-volume usage, commercial apps |
 | **Enterprise** | Custom | Firehose, full archive search |
 
@@ -37,14 +37,13 @@ See [platform.openai.com/pricing](https://platform.openai.com/pricing) for curre
 
 ### 3. Image Generation (optional)
 
-For the `image` prompt workflow, you need an image generation API key.
+For the `image` prompt workflow, use **Nano Banana 2** (Gemini 3.1 Flash Image). Set `GOOGLE_API_KEY` from [Google AI Studio](https://aistudio.google.com/).
 
-| Provider | Model | Cost |
-|----------|-------|------|
-| OpenAI DALL-E 3 | Standard 1024×1024 | $0.040/image |
-| OpenAI DALL-E 3 | HD 1024×1024 | $0.080/image |
+| Model | Cost |
+|-------|------|
+| Gemini 3.1 Flash Image | ~$0.04/image |
 
-Set `OPENAI_API_KEY` and use the image generation code in `prompts/image.md`.
+> **Note:** DALL-E is no longer used. Nano Banana 2 is the current default.
 
 ## API Calls Per Workflow
 
@@ -67,21 +66,21 @@ Set `OPENAI_API_KEY` and use the image generation code in `prompts/image.md`.
 
 ## vs. Dashboard Tools
 
-| What you need | SaaS dashboard | SocialClaw |
+| What you need | SaaS dashboard | SocialSwag |
 |--------------|---------------|------------|
 | **Cost** | $49–$299/month fixed | X API Basic ($100/mo) + usage |
 | **Output** | Charts for human eyes | Structured JSON your agent processes |
 | **Agent-usable** | No (human UI only) | Yes — designed for agents |
-| **Data ownership** | Locked in their platform | Saved locally to `~/.socialclaw/data/` |
+| **Data ownership** | Locked in their platform | Saved locally to `~/.socialswag/data/` |
 | **Customizable** | No | Full source code — fork and adapt |
 
 ## Cost Example
 
-Running `socialclaw radar "AI agents"` (2 API calls) on the X API Basic plan:
+Running `socialswag radar "AI agents"` (2 API calls) on the X API Basic plan:
 
 - Basic plan: $100/month flat rate
 - 10,000 reads/month included
 - Each `radar` call uses ~2 reads
 - You could run ~5,000 radar calls per month on Basic
 
-SocialClaw itself is free and open source (MIT).
+SocialSwag itself is free and open source (MIT).

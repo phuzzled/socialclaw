@@ -1,9 +1,9 @@
 #!/bin/bash
-# SocialClaw Install Script
-# One command to install SocialClaw skill + SDK.
+# SocialSwag Install Script
+# One command to install SocialSwag skill + SDK.
 #
 # Usage:
-#   bash install.sh                           # install SocialClaw (safe mode)
+#   bash install.sh                           # install SocialSwag (safe mode)
 #   MODE=takeover bash install.sh             # also replace sibling x402 skills
 #   MODE=force bash install.sh                # overwrite every sibling skill
 #   bash install.sh --dry-run                 # preview changes
@@ -16,11 +16,11 @@ DRY_RUN=false
 UNINSTALL=false
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd -P)"
-BLOCKRUN_DIR="$HOME/.socialclaw"
-BACKUP_DIR="$BLOCKRUN_DIR/backups/socialclaw"
+BLOCKRUN_DIR="$HOME/.socialswag"
+BACKUP_DIR="$BLOCKRUN_DIR/backups/socialswag"
 MANIFEST_FILE="$BLOCKRUN_DIR/managed-skills.json"
 LAUNCHER_DIR="${XDG_BIN_HOME:-$HOME/.local/bin}"
-LAUNCHER_PATH="$LAUNCHER_DIR/socialclaw"
+LAUNCHER_PATH="$LAUNCHER_DIR/socialswag"
 
 SKILLS_DIRS=()
 FIRST_DIR=""
@@ -28,13 +28,13 @@ PYTHON=""
 
 usage() {
     cat <<'EOF'
-SocialClaw installer
+SocialSwag installer
 
 Options:
   --dry-run       Preview install/takeover actions without changing files.
-  --uninstall     Restore backed-up SKILL.md files and remove the socialclaw launcher.
+  --uninstall     Restore backed-up SKILL.md files and remove the socialswag launcher.
   --mode MODE     safe | takeover | force
-                  safe     = install SocialClaw only
+                  safe     = install SocialSwag only
                   takeover = replace x402/micropayment sibling skills with a wrapper
                   force    = replace every sibling skill with the wrapper
   -h, --help      Show this help.
@@ -42,15 +42,16 @@ Options:
 Environment:
   MODE=...            Same as --mode. Default: safe
   X_API_BEARER_TOKEN  Your X (Twitter) API Bearer Token (can also be set after install)
+  OPENROUTER_API_KEY  Your OpenRouter API key (for AI features)
 
 Authentication:
-  SocialClaw uses the official X API v2. You need an X Developer account and
+  SocialSwag uses the official X API v2. You need an X Developer account and
   Bearer Token. Get yours at: https://developer.x.com/
 
-  Set your token before running SocialClaw:
+  Set your token before running SocialSwag:
     export X_API_BEARER_TOKEN="your_bearer_token_here"
   Or save it permanently:
-    mkdir -p ~/.socialclaw && echo "your_bearer_token_here" > ~/.socialclaw/api_key
+    mkdir -p ~/.socialswag && echo "your_bearer_token_here" > ~/.socialswag/api_key
 EOF
 }
 
@@ -97,16 +98,16 @@ detect_skills_dirs() {
     SKILLS_DIRS=()
 
     if [ -d "$HOME/.claude" ]; then
-        SKILLS_DIRS+=("$HOME/.claude/skills/socialclaw")
+        SKILLS_DIRS+=("$HOME/.claude/skills/socialswag")
     fi
 
     if [ -d "$HOME/.gemini/antigravity" ]; then
-        SKILLS_DIRS+=("$HOME/.gemini/antigravity/skills/socialclaw")
+        SKILLS_DIRS+=("$HOME/.gemini/antigravity/skills/socialswag")
     fi
 
     if [ ${#SKILLS_DIRS[@]} -eq 0 ]; then
         run mkdir -p "$HOME/.claude/skills"
-        SKILLS_DIRS+=("$HOME/.claude/skills/socialclaw")
+        SKILLS_DIRS+=("$HOME/.claude/skills/socialswag")
     fi
 }
 
@@ -162,7 +163,7 @@ from pathlib import Path
 
 manifest = Path(sys.argv[1])
 data = json.loads(manifest.read_text()) if manifest.exists() else {}
-for path in data.get("socialclaw_dirs", []):
+for path in data.get("socialswag_dirs", []):
     print(path)
 PYEOF
     )
@@ -195,7 +196,7 @@ install_or_update_skill() {
             if [ ! -d "$SKILLS_DIR/.git" ]; then
                 log "Installing skill ($PLATFORM)..."
                 run mkdir -p "$(dirname "$SKILLS_DIR")"
-                run git clone --depth 1 --quiet https://github.com/BlockRunAI/socialclaw "$SKILLS_DIR"
+                run git clone --depth 1 --quiet https://github.com/BlockRunAI/socialswag "$SKILLS_DIR"
             else
                 log "Updating skill ($PLATFORM)..."
                 if [ "$DRY_RUN" = true ]; then
@@ -221,14 +222,14 @@ install_launcher() {
     run mkdir -p "$LAUNCHER_DIR"
 
     if [ "$DRY_RUN" = true ]; then
-        log "[dry-run] write launcher $LAUNCHER_PATH -> $FIRST_DIR/scripts/socialclaw.py"
+        log "[dry-run] write launcher $LAUNCHER_PATH -> $FIRST_DIR/scripts/socialswag.py"
         return 0
     fi
 
-    chmod +x "$FIRST_DIR/scripts/socialclaw.py"
+    chmod +x "$FIRST_DIR/scripts/socialswag.py"
     cat > "$LAUNCHER_PATH" <<EOF
 #!/bin/sh
-exec "$FIRST_DIR/scripts/socialclaw.py" "\$@"
+exec "$FIRST_DIR/scripts/socialswag.py" "\$@"
 EOF
     chmod +x "$LAUNCHER_PATH"
 
@@ -236,7 +237,7 @@ EOF
         *":$LAUNCHER_DIR:"*) ;;
         *)
             log "NOTE: $LAUNCHER_DIR is not in PATH."
-            log "Add it to use the 'socialclaw' command directly."
+            log "Add it to use the 'socialswag' command directly."
             ;;
     esac
 }
@@ -285,7 +286,7 @@ take_over_skills() {
         for OTHER_SKILL in "$SKILLS_PARENT"/*/SKILL.md; do
             [ -f "$OTHER_SKILL" ] || continue
             case "$OTHER_SKILL" in
-                */socialclaw/*) continue ;;
+                */socialswag/*) continue ;;
             esac
 
             SHOULD_OVERRIDE=false
@@ -313,7 +314,7 @@ take_over_skills() {
 
             mkdir -p "$BACKUP_DIR"
 
-            if [ ! -f "$BACKUP_PATH" ] && ! grep -q "Managed by BlockRun: socialclaw" "$OTHER_SKILL" 2>/dev/null; then
+            if [ ! -f "$BACKUP_PATH" ] && ! grep -q "Managed by BlockRun: socialswag" "$OTHER_SKILL" 2>/dev/null; then
                 cp "$OTHER_SKILL" "$BACKUP_PATH"
             fi
 
@@ -360,11 +361,11 @@ if records_path.exists():
         )
 
 payload = {
-    "managed_by": "socialclaw",
+    "managed_by": "socialswag",
     "updated_at": datetime.now(timezone.utc).isoformat(),
     "mode": mode,
     "launcher_path": launcher_path,
-    "socialclaw_dirs": skill_dirs,
+    "socialswag_dirs": skill_dirs,
     "managed_skills": managed,
 }
 
@@ -420,7 +421,7 @@ setup_config_dir() {
 verify_install() {
     if "$PYTHON" -c "import requests; print(f'requests v{requests.__version__} installed')" 2>/dev/null; then
         log ""
-        log "SocialClaw installed!"
+        log "SocialSwag installed!"
         log ""
         log "Next step — set your X API Bearer Token:"
         log ""
@@ -428,7 +429,7 @@ verify_install() {
         log ""
         log "Or save it permanently:"
         log ""
-        log "  mkdir -p ~/.socialclaw && echo \"your_bearer_token\" > ~/.socialclaw/api_key"
+        log "  mkdir -p ~/.socialswag && echo \"your_bearer_token\" > ~/.socialswag/api_key"
         log ""
         log "Get your Bearer Token at: https://developer.x.com/"
         log ""
@@ -436,15 +437,15 @@ verify_install() {
         # Check if already configured
         if [ -n "${X_API_BEARER_TOKEN:-}" ]; then
             log "X_API_BEARER_TOKEN is already set in your environment."
-        elif [ -f "$HOME/.socialclaw/api_key" ]; then
-            log "API key found at ~/.socialclaw/api_key"
+        elif [ -f "$HOME/.socialswag/api_key" ]; then
+            log "API key found at ~/.socialswag/api_key"
         fi
 
         log ""
-        log "Try: \"socialclaw radar \\\"AI agents\\\"\""
+        log "Try: \"socialswag radar \\\"AI agents\\\"\""
     else
         log ""
-        log "SocialClaw skill installed."
+        log "SocialSwag skill installed."
         log ""
         log "NOTE: 'requests' was installed but $PYTHON can't find it."
         log "This usually means you're using a different virtual environment."
@@ -495,7 +496,7 @@ case "$MODE" in
         ;;
 esac
 
-log "Installing SocialClaw (mode: $MODE)..."
+log "Installing SocialSwag (mode: $MODE)..."
 detect_python
 
 if [ "$UNINSTALL" = true ]; then

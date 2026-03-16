@@ -1,7 +1,7 @@
 """
-SocialClaw Branding Utilities - Consistent CLI output formatting.
+SocialSwag Branding Utilities - Consistent CLI output formatting.
 
-Provides branded headers, footers, and response formatting for all SocialClaw
+Provides branded headers, footers, and response formatting for all SocialSwag
 CLI operations, ensuring a professional and recognizable user experience.
 """
 
@@ -10,7 +10,7 @@ import sys
 
 
 class BlockRunBranding:
-    """Unified branding output system for SocialClaw."""
+    """Unified branding output system for SocialSwag."""
 
     # Compact ASCII logo for CLI
     LOGO = """
@@ -19,7 +19,7 @@ class BlockRunBranding:
 \\___ \\ / _ \\ / __| |/ _` | | |   | |/ _` \\ \\ /\\ / /
  ___) | (_) | (__| | (_| | | |___| | (_| |\\ V  V /
 |____/ \\___/ \\___|_|\\__,_|_|\\____|_|\\__,_| \\_/\\_/
-                                    SOCIALCLAW"""
+                                    SOCIALSWAG"""
 
     # Simple header for regular operations
     HEADER_LINE = "=" * 60
@@ -109,7 +109,7 @@ class BlockRunBranding:
         if description:
             print(f"  {self._c('dim', description)}")
 
-        print(f"  {self._c('dim', 'Accessed via: SocialClaw × X API v2')}")
+        print(f"  {self._c('dim', 'Accessed via: SocialSwag × X API v2')}")
         print(self._c("dim", "-" * 60))
 
     def print_footer(
@@ -143,7 +143,7 @@ class BlockRunBranding:
         if budget_remaining is not None and budget_limit is not None:
             print(f"  {self._c('green', '✓')} Budget remaining: ${budget_remaining:.4f} of ${budget_limit:.2f}")
 
-        print(f"  {self._c('dim', 'Powered by SocialClaw × X API v2 • docs.x.com/x-api')}")
+        print(f"  {self._c('dim', 'Powered by SocialSwag × X API v2 • docs.x.com/x-api')}")
 
     def print_error(self, message: str, help_link: Optional[str] = None):
         """

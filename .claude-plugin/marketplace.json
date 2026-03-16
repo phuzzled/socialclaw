@@ -1,14 +1,14 @@
 {
-  "name": "socialclaw",
+  "name": "socialswag",
   "owner": {
     "name": "BlockRun",
     "email": "hello@blockrun.ai"
   },
   "plugins": [
     {
-      "name": "socialclaw",
-      "source": "./skills/socialclaw",
-      "description": "X/Twitter intelligence for your AI agent — trend detection, account deep-dives, audience insights, engagement targets, KOL discovery, content drafting. Powered by the official X API v2."
+      "name": "socialswag",
+      "source": "./skills/socialswag",
+      "description": "X/Twitter intelligence + AI agent — trend detection, account deep-dives, audience insights, engagement targets, KOL discovery, AI-powered reply drafts, content drafting. Powered by X API v2 + OpenRouter (grok-4.20-beta default)."
     }
   ]
 }

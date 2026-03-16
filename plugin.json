@@ -1,16 +1,16 @@
 {
-  "name": "socialclaw",
-  "version": "1.1.0",
-  "description": "X/Twitter marketing intelligence and growth agent — trending topics, competitor analysis, content insights, audience mapping, powered by the official X API v2",
+  "name": "socialswag",
+  "version": "2.0.0",
+  "description": "X/Twitter marketing intelligence + AI agent — trending topics, competitor analysis, content insights, audience mapping, AI-powered reply drafts, image generation. Powered by X API v2 + OpenRouter (grok-4.20-beta default)",
   "author": {
     "name": "BlockRun",
-    "email": "care@blockrun.ai"
+    "email": "hello@blockrun.ai"
   },
   "homepage": "https://blockrun.ai",
-  "repository": "https://github.com/phuzzled/socialclaw",
+  "repository": "https://github.com/BlockRunAI/socialswag",
   "license": "MIT",
   "keywords": [
-    "socialclaw",
+    "socialswag",
     "twitter",
     "x-api",
     "x-data",
@@ -19,6 +19,9 @@
     "intelligence",
     "competitor-analysis",
     "social-media",
-    "content-optimization"
+    "content-optimization",
+    "openrouter",
+    "grok",
+    "ai-agent"
   ]
 }

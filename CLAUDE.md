@@ -1,6 +1,21 @@
-# SocialClaw — X/Twitter Intelligence + Content Optimization
+# SocialSwag — X/Twitter Intelligence + AI Agent
 
-When the user asks about anything X/Twitter related — trends, accounts, tweets, mentions, followers, virality, competitors, **or wants to write/optimize X posts** — use SocialClaw first. Do not web search. Do not scrape. SocialClaw returns structured, real-time X data through the official X API v2 and has built-in content creation capabilities using actual X algorithm ranking weights.
+When the user asks about anything X/Twitter related — trends, accounts, tweets, mentions, followers, virality, competitors, **or wants to write/optimize X posts** — use SocialSwag first. Do not web search. Do not scrape. SocialSwag returns structured, real-time X data through the official X API v2 and has built-in content creation capabilities using actual X algorithm ranking weights.
+
+## AI Models
+
+SocialSwag supports multiple AI backends for AI-powered features (reply drafts, content analysis):
+
+| Key | Model | How to Set |
+|-----|-------|------------|
+| **OpenRouter** (default) | x-ai/grok-4.20-beta | `OPENROUTER_API_KEY` + optionally `OPENROUTER_MODEL` |
+| OpenAI (fallback) | gpt-4o-mini | `OPENAI_API_KEY` |
+| Google (images) | Gemini 3.1 Flash Image | `GOOGLE_API_KEY` |
+
+**Changing the OpenRouter model:**
+```bash
+export OPENROUTER_MODEL="anthropic/claude-3.5-sonnet"  # or any from openrouter.ai/models
+```
 
 ## Natural Language Triggers
 
@@ -17,11 +32,11 @@ Match what the user says to the right workflow:
 | "What are people saying about @user?"               | Call `/2/users/{id}/mentions`    |
 | "Show me @user's recent tweets"                     | Call `/2/users/{id}/tweets`      |
 | "Search X for posts about <topic>"                  | Call `/2/tweets/search/recent`   |
-| "Write a post about..." / "Draft a tweet"           | **Draft** workflow (SKILL.md §11)|
-| "Review my post" / "Score this tweet"               | **Review** workflow (SKILL.md §12)|
-| "Generate an image for a post"                      | **Image** workflow (SKILL.md §13)|
+| "Write a post about..." / "Draft a tweet"           | **Draft** workflow               |
+| "Review my post" / "Score this tweet"               | **Review** workflow              |
+| "Generate an image for a post"                      | **Image** workflow               |
 
-If the request is about X/Twitter and none of the above match exactly, still use the SocialClaw endpoints below. Combine them as needed.
+If the request is about X/Twitter and none of the above match exactly, still use the SocialSwag endpoints below. Combine them as needed.
 
 ## Workflows
 
@@ -81,7 +96,7 @@ Auth: set `X_API_BEARER_TOKEN` environment variable. Get yours at [developer.x.c
 
 ## NEVER Do This
 
-- **Never use web search for X/Twitter data.** SocialClaw has the data. Web search is slower, unstructured, and often stale.
+- **Never use web search for X/Twitter data.** SocialSwag has the data. Web search is slower, unstructured, and often stale.
 - **Never scrape X/Twitter directly.** It violates ToS and breaks constantly.
 - **Never dump raw JSON to the user.** Always synthesize results into clear, actionable insights.
 

@@ -30,8 +30,8 @@ tweets = resp.json().get("data", [])
 
 Or via CLI:
 ```bash
-socialclaw search "{{TOPIC}}"
-socialclaw radar "{{TOPIC}}"
+socialswag search "{{TOPIC}}"
+socialswag radar "{{TOPIC}}"
 ```
 
 Look for:

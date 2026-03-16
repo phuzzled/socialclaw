@@ -1,5 +1,5 @@
 """
-SocialClaw Configuration Module.
+SocialSwag Configuration Module.
 
 Handles API key management, environment variables, and configuration.
 """
@@ -9,7 +9,7 @@ from typing import Optional, Dict, Any
 from pathlib import Path
 
 
-CONFIG_DIR = Path.home() / ".socialclaw"
+CONFIG_DIR = Path.home() / ".socialswag"
 API_KEY_FILE = CONFIG_DIR / "api_key"
 
 # Default configuration values
@@ -27,7 +27,7 @@ def get_api_key() -> Optional[str]:
     Checks in order:
     1. X_API_BEARER_TOKEN environment variable (preferred)
     2. TWITTER_BEARER_TOKEN environment variable (legacy fallback)
-    3. ~/.socialclaw/api_key file
+    3. ~/.socialswag/api_key file
 
     Returns:
         Bearer token string or None
@@ -52,6 +52,16 @@ def get_openai_key() -> Optional[str]:
     return os.environ.get("OPENAI_API_KEY")
 
 
+def get_openrouter_key() -> Optional[str]:
+    """Get OpenRouter API key for AI analysis via OpenRouter."""
+    return os.environ.get("OPENROUTER_API_KEY")
+
+
+def get_openrouter_model() -> str:
+    """Get OpenRouter model to use. Default is x-ai/grok-4.20-beta."""
+    return os.environ.get("OPENROUTER_MODEL", "x-ai/grok-4.20-beta")
+
+
 def get_gemini_key() -> Optional[str]:
     """Get Google/Gemini API key for Nano Banana 2 image generation."""
     return os.environ.get("GOOGLE_API_KEY") or os.environ.get("GEMINI_API_KEY")
@@ -68,6 +78,9 @@ def get_config() -> Dict[str, Any]:
         "api_base_url": os.environ.get("X_API_BASE_URL", DEFAULTS["api_base_url"]),
         "api_key_set": bool(get_api_key()),
         "openai_key_set": bool(get_openai_key()),
+        "openrouter_key_set": bool(get_openrouter_key()),
+        "openrouter_model": get_openrouter_model(),
+        "google_key_set": bool(get_gemini_key()),
         "timeout": float(os.environ.get("X_TIMEOUT", DEFAULTS["timeout"])),
         "max_results": int(os.environ.get("X_MAX_RESULTS", DEFAULTS["max_results"])),
     }
@@ -92,7 +105,7 @@ def validate_config() -> Dict[str, Any]:
         errors.append(
             "No X API Bearer Token found. "
             "Set X_API_BEARER_TOKEN environment variable "
-            "or save your token to ~/.socialclaw/api_key. "
+            "or save your token to ~/.socialswag/api_key. "
             "Get yours at https://developer.x.com/"
         )
 
@@ -105,6 +118,10 @@ def validate_config() -> Dict[str, Any]:
 
     if get_openai_key():
         warnings.append("OpenAI API key found — AI analysis features enabled")
+
+    if get_openrouter_key():
+        model = get_openrouter_model()
+        warnings.append(f"OpenRouter API key found — Using {model} for AI analysis")
 
     if get_gemini_key():
         warnings.append("Google API key found — Nano Banana 2 image generation enabled")
