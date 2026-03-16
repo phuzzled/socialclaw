@@ -196,7 +196,7 @@ install_or_update_skill() {
             if [ ! -d "$SKILLS_DIR/.git" ]; then
                 log "Installing skill ($PLATFORM)..."
                 run mkdir -p "$(dirname "$SKILLS_DIR")"
-                run git clone --depth 1 --quiet https://github.com/BlockRunAI/socialswag "$SKILLS_DIR"
+                run git clone --depth 1 --quiet https://github.com/phuzzled/socialswag "$SKILLS_DIR"
             else
                 log "Updating skill ($PLATFORM)..."
                 if [ "$DRY_RUN" = true ]; then
