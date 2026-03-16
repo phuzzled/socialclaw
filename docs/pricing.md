@@ -1,60 +1,87 @@
 # Pricing
 
-## Workflow Costs
+SocialClaw is free software. You pay only for the underlying services you use.
 
-| Workflow | API Calls | Cost |
-|----------|-----------|------|
-| Insight | 3 calls | ~$0.08 |
-| Radar | 4 calls | ~$0.07 |
-| Compare | 6 calls | ~$0.15 |
-| Audience | 3 calls | ~$0.15 |
-| Scout | 2 calls | ~$0.07 |
-| Hitlist | 1 call | ~$0.03 |
-| Brief | 3 calls | ~$0.08 |
+## What You Pay For
 
-**$1 USDC = ~12 full marketing reports.**
+### 1. X API Subscription (required)
 
-## API Endpoint Costs
+SocialClaw calls the official X API v2 ([docs.x.com/x-api](https://docs.x.com/x-api/introduction)).
+You need an X Developer account and access tier:
 
-| Endpoint | What you get | Cost |
-|----------|-------------|------|
-| `users/info` | Profile, bio, stats, verification | $0.002 |
-| `users/lookup` | Batch profiles (up to 100) | $0.002/user |
-| `users/followers` | Follower list with stats (~200/page) | $0.05/page |
-| `users/followings` | Following list (~200/page) | $0.05/page |
-| `users/tweets` | User's tweets with engagement | $0.032/page |
-| `users/mentions` | Who's talking about them | $0.032/page |
-| `search` | Search tweets (Latest/Top) | $0.032/page |
-| `trending` | Trending topics + view counts | $0.002 |
-| `articles/rising` | Viral content detection | $0.05 |
-| `tweets/lookup` | Batch tweet data (up to 200) | $0.16/batch |
-| `tweets/replies` | Replies to a tweet | $0.032/page |
-| `tweets/thread` | Full thread context | $0.032/page |
-| `x_author_analytics` | Author intelligence score | $0.02 |
-| `x_compare_authors` | Compare two accounts | $0.05 |
+> **Note:** Pricing is set by X/Twitter and may change. Always check [developer.x.com/en/portal/products](https://developer.x.com/en/portal/products) for current rates.
 
-## AI Models
+| Tier | Monthly cost (approx.) | Recommended for |
+|------|-------------|----------------|
+| **Free** | $0 | Testing, tweet/user lookups only |
+| **Basic** | $100 | Most SocialClaw workflows (search, mentions, followers) |
+| **Pro** | $5,000 | High-volume usage, commercial apps |
+| **Enterprise** | Custom | Firehose, full archive search |
 
-| Model | Best for | Input | Output |
-|-------|----------|-------|--------|
-| `openai/gpt-5.2` | General, code review | $1.75/M | $14.00/M |
-| `openai/gpt-5-mini` | Fast + cheap | $0.30/M | $1.20/M |
-| `xai/grok-3` | Real-time X data | $3.00/M | $15.00/M |
-| `deepseek/deepseek-chat` | Bulk processing | $0.28/M | $0.42/M |
-| `anthropic/claude-sonnet-4` | Coding | $3.00/M | $15.00/M |
-| `google/gemini-2.5-flash` | Long documents | $0.15/M | $0.60/M |
+Get a key at [developer.x.com](https://developer.x.com/).
 
-## vs. Alternatives
+> **Most users need Basic ($100/mo).** Free tier does not allow tweet search or mentions.
 
-| What you need | X API Official | SocialClaw |
+### 2. OpenAI API (optional)
+
+Only needed if you use the `engage` command's AI reply-draft feature.
+
+Set `OPENAI_API_KEY` to enable. Uses `gpt-4o-mini` by default.
+
+| Model | Input | Output | Cost for engage workflow |
+|-------|-------|--------|--------------------------|
+| `gpt-4o-mini` | $0.15/M tokens | $0.60/M tokens | ~$0.001 per call |
+| `gpt-4o` | $2.50/M tokens | $10.00/M tokens | ~$0.01 per call |
+
+See [platform.openai.com/pricing](https://platform.openai.com/pricing) for current rates.
+
+### 3. Image Generation (optional)
+
+For the `image` prompt workflow, you need an image generation API key.
+
+| Provider | Model | Cost |
+|----------|-------|------|
+| OpenAI DALL-E 3 | Standard 1024×1024 | $0.040/image |
+| OpenAI DALL-E 3 | HD 1024×1024 | $0.080/image |
+
+Set `OPENAI_API_KEY` and use the image generation code in `prompts/image.md`.
+
+## API Calls Per Workflow
+
+| Workflow | Command | X API calls | Notes |
+|----------|---------|-------------|-------|
+| Tweet Lookup | `tweet <id>` | ~2 | 1 lookup + 1 search for replies |
+| Thread Lookup | `thread <id>` | ~1 | conversation_id search |
+| Author Analytics | `analytics @handle` | ~2 | profile + tweets |
+| Account Deep-Dive | `insight @username` | ~4 | profile + mentions + followers + tweets |
+| Topic Intelligence | `radar <topic>` | ~2 | recent + top search |
+| Competitor Analysis | `compare @a @b` | ~6 | 2× (profile + mentions + followers) |
+| Follower Segmentation | `audience @username` | ~2 | profile + followers |
+| KOL Discovery | `scout <topic>` | ~1 | top tweet search |
+| Engagement Targets | `hitlist <topic>` | ~1 | recent tweet search |
+| Daily Marketing Brief | `brief @handle` | ~3 | profile + mentions + followers |
+| Engage | `engage @handle` | ~3 | profile + mentions + search |
+| Draft Post | `draft "topic"` | ~1 | search for examples |
+| Review Post | `review` | 0 | no API calls (local scoring) |
+| Search | `search <query>` | ~2 | recent + top |
+
+## vs. Dashboard Tools
+
+| What you need | SaaS dashboard | SocialClaw |
 |--------------|---------------|------------|
-| 1 profile lookup | $100/month subscription | $0.002 |
-| 1,000 follower profiles | $100/month subscription | $0.25 |
-| Trending topics | $100/month subscription | $0.002 |
-| Full competitor report | $100/month + build it yourself | $0.15 |
+| **Cost** | $49–$299/month fixed | X API Basic ($100/mo) + usage |
+| **Output** | Charts for human eyes | Structured JSON your agent processes |
+| **Agent-usable** | No (human UI only) | Yes — designed for agents |
+| **Data ownership** | Locked in their platform | Saved locally to `~/.socialclaw/data/` |
+| **Customizable** | No | Full source code — fork and adapt |
 
-## Payment
+## Cost Example
 
-- **Protocol:** [x402](https://x402.org) — HTTP 402 micropayments
-- **Currency:** USDC on [Base](https://base.org) or [Solana](https://solana.com)
-- **No subscriptions.** Pay only for what you use.
+Running `socialclaw radar "AI agents"` (2 API calls) on the X API Basic plan:
+
+- Basic plan: $100/month flat rate
+- 10,000 reads/month included
+- Each `radar` call uses ~2 reads
+- You could run ~5,000 radar calls per month on Basic
+
+SocialClaw itself is free and open source (MIT).

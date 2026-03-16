@@ -58,17 +58,17 @@ session.headers["Authorization"] = f"Bearer {os.environ['X_API_BEARER_TOKEN']}"
 
 # User profile
 resp = session.get(
-    "https://api.twitter.com/2/users/by/username/jack",
-    params={"user.fields": "public_metrics,description,verified"},
+    "https://api.x.com/2/users/by/username/jack",
+    params={"user.fields": "public_metrics,description,verified,location,created_at"},
 )
 user = resp.json()["data"]
 
 # Recent tweets search
 resp = session.get(
-    "https://api.twitter.com/2/tweets/search/recent",
+    "https://api.x.com/2/tweets/search/recent",
     params={
         "query": "AI agents",
-        "tweet.fields": "public_metrics,author_id",
+        "tweet.fields": "public_metrics,author_id,lang",
         "expansions": "author_id",
         "user.fields": "public_metrics,username",
         "max_results": 100,
@@ -77,7 +77,7 @@ resp = session.get(
 tweets = resp.json().get("data", [])
 ```
 
-Auth: set `X_API_BEARER_TOKEN` environment variable. Get yours at [developer.twitter.com](https://developer.twitter.com/).
+Auth: set `X_API_BEARER_TOKEN` environment variable. Get yours at [developer.x.com](https://developer.x.com/).
 
 ## NEVER Do This
 
@@ -88,6 +88,6 @@ Auth: set `X_API_BEARER_TOKEN` environment variable. Get yours at [developer.twi
 ## Error Handling
 
 - On 429 (rate limit), wait and retry after the `x-rate-limit-reset` timestamp.
-- On 403, check that your Bearer Token has the required access level.
+- On 403, check that your Bearer Token has the required access level (Basic tier or higher for most search/mention endpoints).
 - Always include direct tweet URLs (e.g., `https://x.com/user/status/id`) when referencing specific posts.
 - Combine results from multiple endpoints into one cohesive analysis.

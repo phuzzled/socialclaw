@@ -4,83 +4,94 @@
 
 You are generating an optimized image for an X post about: **{{DESCRIPTION}}**
 
-## BlockRun Requirement
+## Image Generation
 
-Image generation requires BlockRun MCP with `blockrun_image` tool.
+Use the OpenAI Images API directly (requires `OPENAI_API_KEY`):
 
-If not available, inform user:
+```python
+import os
+import requests
+
+openai_key = os.environ.get("OPENAI_API_KEY")
+if not openai_key:
+    print("Set OPENAI_API_KEY to enable image generation.")
+    print("Get your key at: https://platform.openai.com/api-keys")
+else:
+    description = "{{DESCRIPTION}}"  # CHANGE THIS
+    optimized_prompt = (
+        f"{description}, high contrast, bold colors, clean composition, "
+        "professional quality, minimalist style, 16:9 aspect ratio"
+    )
+
+    r = requests.post(
+        "https://api.openai.com/v1/images/generations",
+        json={
+            "model": "dall-e-3",
+            "prompt": optimized_prompt,
+            "size": "1792x1024",   # best for X/Twitter preview
+            "quality": "standard",
+            "n": 1,
+        },
+        headers={"Authorization": f"Bearer {openai_key}"},
+        timeout=60,
+    )
+    r.raise_for_status()
+    image_url = r.json()["data"][0]["url"]
+    print(f"Image URL: {image_url}")
+    print(f"Revised prompt: {r.json()['data'][0].get('revised_prompt', '')}")
 ```
-Image generation requires BlockRun MCP.
 
-Install: claude mcp add blockrun -- npx @blockrun/mcp
-Fund wallet with USDC on Base (~$0.05 per image)
-```
+Cost: ~$0.040 per image (DALL-E 3 standard), ~$0.080 (HD quality).
 
-## Prompt Optimization for X
+## X-Optimized Image Guidelines
 
-Transform user description into an optimized image prompt:
+1. **High Contrast** — Stops the scroll in the feed
+2. **Minimal Text** — X algorithm prefers native images over text-heavy graphics
+3. **Bold Colors** — Stand out in the timeline
+4. **Simple Composition** — Single clear focal point
+5. **Aspect Ratio** — `1792×1024` (16:9) for optimal X card preview; `1024×1024` for square posts
 
-### X-Optimized Image Guidelines
+## Prompt Enhancement
 
-1. **High Contrast** - Stops the scroll in feed
-2. **Minimal Text** - Algorithm prefers native images over text-heavy graphics
-3. **Bold Colors** - Stand out in timeline
-4. **Simple Composition** - Clear focal point
-5. **Aspect Ratio** - 1200x675 for optimal preview (16:9)
+Take the user's description and always add:
+- `"high contrast"`
+- `"bold colors"`
+- `"clean composition"`
+- `"professional quality"`
+- Specific style if appropriate (e.g., `"minimalist tech"`, `"abstract"`, `"photorealistic"`)
 
-### Prompt Enhancement
+## Model Selection
 
-Take user's description and add:
-- "high contrast"
-- "bold colors"
-- "clean composition"
-- "professional quality"
-- Specific style if appropriate (minimalist, tech, abstract)
-
-### Model Selection
-
-Default: `google/nano-banana` (~$0.05)
-- Good quality
-- Fast generation
-- Cost-effective
-
-Alternative: `openai/dall-e-3` ($0.04-0.08)
-- Higher fidelity
-- Better text rendering
-- Use for complex requests
-
-## Generation Command
-
-```
-blockrun_image prompt: "[optimized prompt]" model: "google/nano-banana" size: "1024x1024"
-```
+| Model | Size | Quality | Cost | Use when |
+|-------|------|---------|------|----------|
+| `dall-e-3` | 1792×1024 | standard | $0.040 | Most posts |
+| `dall-e-3` | 1024×1024 | hd | $0.080 | Important announcements |
+| `dall-e-3` | 1024×1024 | standard | $0.040 | Square posts |
 
 ## Output Format
 
 Present:
-1. Generated image (display or save location)
-2. Image optimization tips applied
-3. Suggested post to accompany the image
-4. Alternative prompt if user wants variations
+1. Generated image (URL or saved file path)
+2. The optimized prompt used
+3. Suggested accompanying post text
+4. Alternative prompt if the user wants variations
 
 ## Image Types by Post Category
 
 ### Announcements
-- Abstract tech visuals
-- Branded graphics (if user has brand colors)
-- Product screenshots/mockups
+- Abstract tech visuals, gradients, geometric shapes
+- Branded colors + product concept if available
 
 ### Educational Content
-- Simple diagrams
+- Simple diagrams or visual metaphors
 - Before/after comparisons
-- Visual metaphors
+- Step-by-step visual flows
 
 ### Personal/Story Posts
-- Abstract emotional visuals
-- Relevant stock-style imagery
-- Atmospheric backgrounds
+- Abstract emotional visuals, atmospheric backgrounds
+- Relevant contextual imagery
 
 ### Technical Content
-- Code snippets (stylized)
-- Architecture diagrams
-- Dashboard/UI mockups
+- Stylized code snippets on dark background
+- Architecture diagrams (minimal, clean)
+- Dashboard/UI mockup previews

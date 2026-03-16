@@ -1,6 +1,6 @@
 # API Reference
 
-SocialClaw uses the official [X API v2](https://developer.twitter.com/en/docs/twitter-api).
+SocialClaw uses the official [X API v2](https://docs.x.com/x-api/introduction).
 
 ## Setup
 
@@ -15,7 +15,7 @@ session.headers["Authorization"] = f"Bearer {BEARER_TOKEN}"
 
 # Example: get user profile
 resp = session.get(
-    "https://api.twitter.com/2/users/by/username/jack",
+    "https://api.x.com/2/users/by/username/jack",
     params={"user.fields": "public_metrics,description,verified"},
 )
 user = resp.json()["data"]
@@ -31,10 +31,10 @@ socialclaw insight @jack
 
 ## Authentication
 
-Get your Bearer Token from [developer.twitter.com](https://developer.twitter.com/).
+Get your Bearer Token from [developer.x.com](https://developer.x.com/).
 
 ```bash
-# Option 1: environment variable
+# Option 1: environment variable (recommended)
 export X_API_BEARER_TOKEN="your_bearer_token_here"
 
 # Option 2: config file
@@ -42,18 +42,81 @@ mkdir -p ~/.socialclaw
 echo "your_bearer_token_here" > ~/.socialclaw/api_key
 ```
 
-## X/Twitter Endpoints (via X API v2)
+> **Tip:** Never commit your Bearer Token to version control. Use environment variables or the config file.
 
-| Endpoint | What | X API v2 path |
-|----------|------|---------------|
-| User profile | Profile, bio, stats, verification | `GET /2/users/by/username/{username}` |
-| User's tweets | Tweets + engagement metrics | `GET /2/users/{id}/tweets` |
-| User's mentions | Tweets mentioning user | `GET /2/users/{id}/mentions` |
-| Followers | Follower list | `GET /2/users/{id}/followers` |
-| Tweet search | Search recent tweets | `GET /2/tweets/search/recent` |
-| Tweet lookup | Single tweet data | `GET /2/tweets/{id}` |
-| Replies | Replies to a tweet | `GET /2/tweets/search/recent?query=conversation_id:{id}` |
-| Thread | Full conversation thread | `GET /2/tweets/search/recent?query=conversation_id:{id}` |
+## Base URL
+
+All X API v2 requests use: `https://api.x.com/2`
+
+(The legacy `https://api.twitter.com/2` base also works but `api.x.com` is the current canonical URL.)
+
+## X/Twitter Endpoints Used by SocialClaw
+
+| Endpoint | What | X API v2 path | Access tier |
+|----------|------|---------------|-------------|
+| User profile | Profile, bio, stats, verification | `GET /2/users/by/username/{username}` | Free |
+| User's tweets | Tweets + engagement metrics | `GET /2/users/{id}/tweets` | Basic+ |
+| User's mentions | Tweets mentioning user | `GET /2/users/{id}/mentions` | Basic+ |
+| Followers | Follower list | `GET /2/users/{id}/followers` | Basic+ |
+| Tweet search | Search recent tweets (7-day window) | `GET /2/tweets/search/recent` | Basic+ |
+| Tweet lookup | Single tweet data | `GET /2/tweets/{id}` | Free |
+| Replies / thread | Tweets in a conversation | `GET /2/tweets/search/recent?query=conversation_id:{id}` | Basic+ |
+
+### X API Access Tiers
+
+| Tier | Price | Rate limits | Notes |
+|------|-------|-------------|-------|
+| Free | $0 | 1 app, 500K tweets/month write, limited read | Basic lookups only |
+| Basic | $100/month | 10K app read, 5M user read | Most SocialClaw workflows |
+| Pro | $5,000/month | 1M app read | Heavy-usage / commercial |
+| Enterprise | Custom | Unlimited | Full firehose access |
+
+See [docs.x.com/x-api/getting-started/about-x-api](https://docs.x.com/x-api/getting-started/about-x-api) for up-to-date tier details.
+
+## Per-Workflow API Usage
+
+| Workflow | CLI command | Endpoints called | Approx. API reads |
+|----------|-------------|-----------------|-------------------|
+| Insight | `insight @handle` | users/by/username, users/{id}/mentions, users/{id}/followers, users/{id}/tweets | ~4 requests |
+| Radar | `radar <topic>` | tweets/search/recent ×2 | ~2 requests |
+| Compare | `compare @a @b` | users/by/username ×2, users/{id}/mentions ×2, users/{id}/followers ×2 | ~6 requests |
+| Audience | `audience @handle` | users/by/username, users/{id}/followers | ~2 requests |
+| Scout | `scout <topic>` | tweets/search/recent | ~1 request |
+| Hitlist | `hitlist <topic>` | tweets/search/recent | ~1 request |
+| Engage | `engage @handle` | users/by/username, users/{id}/mentions, tweets/search/recent | ~3 requests |
+| Check | `check @handle` | users/by/username, users/{id}/tweets, users/{id}/mentions | ~3 requests |
+| Search | `search <query>` | tweets/search/recent ×2 | ~2 requests |
+| Tweet | `tweet <id/url>` | tweets/{id}, tweets/search/recent (replies) | ~2 requests |
+| Thread | `thread <id/url>` | tweets/search/recent | ~1 request |
+| Analytics | `analytics @handle` | users/by/username, users/{id}/tweets | ~2 requests |
+| Brief | `brief @handle` | users/by/username, users/{id}/mentions, users/{id}/followers | ~3 requests |
+
+## Request Fields
+
+SocialClaw requests these fields for maximum data richness:
+
+**User fields:** `public_metrics,description,username,name,verified,created_at,location,url,profile_image_url`
+
+**Tweet fields:** `public_metrics,created_at,author_id,conversation_id,lang,entities`
+
+**Expansions:** `author_id`
+
+## Rate Limits
+
+X API v2 rate limits are per 15-minute window. Key limits (Basic tier):
+
+| Endpoint | Limit per 15 min |
+|----------|-----------------|
+| `GET /2/users/by/username/{u}` | 300 |
+| `GET /2/users/{id}/tweets` | 900 |
+| `GET /2/users/{id}/mentions` | 450 |
+| `GET /2/users/{id}/followers` | 15 |
+| `GET /2/tweets/search/recent` | 180 |
+| `GET /2/tweets/{id}` | 300 |
+
+See [docs.x.com/x-api/rate-limits](https://docs.x.com/x-api/rate-limits) for current values.
+
+On `429 Too Many Requests`, SocialClaw surfaces the `x-rate-limit-reset` epoch timestamp.
 
 ## AI Models (Optional)
 
@@ -64,6 +127,14 @@ export OPENAI_API_KEY="your_openai_key"
 socialclaw engage @yourhandle
 ```
 
+The `engage` workflow uses `gpt-4o-mini` by default (fast, cheap).
+
 ## Data Auto-Save
 
 All responses saved to `~/.socialclaw/data/` as timestamped JSON.
+
+```
+~/.socialclaw/data/
+  20240316_091200_users_info_elonmusk.json
+  20240316_091205_tweets_search_recent_AI-agents.json
+```

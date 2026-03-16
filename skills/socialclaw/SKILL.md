@@ -1,7 +1,7 @@
 ---
 name: socialclaw
 user-invocable: true
-description: X/Twitter marketing intelligence + content optimization — account insights, topic trends, competitor analysis, audience mapping, KOL discovery, post drafting, post review/scoring. Powered by the official X API v2.
+description: X/Twitter marketing intelligence + content optimization — account insights, topic trends, competitor analysis, audience mapping, KOL discovery, post drafting, post review/scoring. Powered by the official X API v2 (api.x.com). Requires X_API_BEARER_TOKEN.
 allowed-tools: Read, Bash(python:*), Bash(python3:*), Bash(pip:*)
 ---
 
@@ -97,14 +97,14 @@ session = requests.Session()
 session.headers["Authorization"] = f"Bearer {BEARER_TOKEN}"
 
 # Quick check
-resp = session.get("https://api.twitter.com/2/users/by/username/jack",
+resp = session.get("https://api.x.com/2/users/by/username/jack",
                    params={"user.fields": "public_metrics"})
 user = resp.json()["data"]
 print(f"Connected! Test: @{user['username']} has {user['public_metrics']['followers_count']:,} followers")
 ```
 
 **Auth:** Set `X_API_BEARER_TOKEN` environment variable or save token to `~/.socialclaw/api_key`.
-Get your Bearer Token at [developer.twitter.com](https://developer.twitter.com/).
+Get your Bearer Token at [developer.x.com](https://developer.x.com/).
 
 ---
 
@@ -118,7 +118,7 @@ Get full data for a specific tweet — text, metrics, author info.
 tweet_id = "1234567890"  # CHANGE THIS
 
 resp = session.get(
-    f"https://api.twitter.com/2/tweets/{tweet_id}",
+    f"https://api.x.com/2/tweets/{tweet_id}",
     params={
         "tweet.fields": "public_metrics,author_id",
         "expansions": "author_id",
@@ -145,7 +145,7 @@ Get a full conversation thread from any tweet in it.
 tweet_id = "1234567890"  # CHANGE THIS
 
 resp = session.get(
-    "https://api.twitter.com/2/tweets/search/recent",
+    "https://api.x.com/2/tweets/search/recent",
     params={
         "query": f"conversation_id:{tweet_id}",
         "tweet.fields": "public_metrics,author_id",
@@ -174,7 +174,7 @@ handle = "jack"  # CHANGE THIS
 
 # Get user ID first
 resp = session.get(
-    f"https://api.twitter.com/2/users/by/username/{handle}",
+    f"https://api.x.com/2/users/by/username/{handle}",
     params={"user.fields": "public_metrics"},
 )
 user = resp.json()["data"]
@@ -184,7 +184,7 @@ print(f"@{handle}: {m.get('followers_count',0):,} followers, {m.get('tweet_count
 
 # Recent tweets for engagement stats
 resp2 = session.get(
-    f"https://api.twitter.com/2/users/{user_id}/tweets",
+    f"https://api.x.com/2/users/{user_id}/tweets",
     params={"tweet.fields": "public_metrics", "max_results": 20},
 )
 tweets = resp2.json().get("data", [])
@@ -204,7 +204,7 @@ username = "jack"  # CHANGE THIS
 
 # Profile
 resp = session.get(
-    f"https://api.twitter.com/2/users/by/username/{username}",
+    f"https://api.x.com/2/users/by/username/{username}",
     params={"user.fields": "public_metrics,description,verified"},
 )
 d = resp.json()["data"]
@@ -215,7 +215,7 @@ print(f"Bio: {d.get('description','')[:120]}")
 
 # Who mentions them (engagement quality)
 resp2 = session.get(
-    f"https://api.twitter.com/2/users/{user_id}/mentions",
+    f"https://api.x.com/2/users/{user_id}/mentions",
     params={
         "tweet.fields": "public_metrics,author_id",
         "expansions": "author_id",
@@ -242,7 +242,7 @@ topic = "AI agents"  # CHANGE THIS
 
 # Latest conversation via X API search
 resp = session.get(
-    "https://api.twitter.com/2/tweets/search/recent",
+    "https://api.x.com/2/tweets/search/recent",
     params={
         "query": topic,
         "tweet.fields": "public_metrics,author_id",
@@ -272,7 +272,7 @@ user1, user2 = "openai", "anthropic"  # CHANGE THESE
 
 def get_user(username):
     r = session.get(
-        f"https://api.twitter.com/2/users/by/username/{username}",
+        f"https://api.x.com/2/users/by/username/{username}",
         params={"user.fields": "public_metrics,description"},
     )
     return r.json()["data"]
@@ -297,12 +297,12 @@ Who follows them? Cluster by influence tier.
 username = "jack"  # CHANGE THIS
 
 # Get user ID
-resp = session.get(f"https://api.twitter.com/2/users/by/username/{username}")
+resp = session.get(f"https://api.x.com/2/users/by/username/{username}")
 user_id = resp.json()["data"]["id"]
 
 # Get followers
 resp2 = session.get(
-    f"https://api.twitter.com/2/users/{user_id}/followers",
+    f"https://api.x.com/2/users/{user_id}/followers",
     params={"user.fields": "public_metrics,description", "max_results": 1000},
 )
 followers = resp2.json().get("data", [])
@@ -328,7 +328,7 @@ Find the key voices in any topic.
 topic = "machine learning"  # CHANGE THIS
 
 resp = session.get(
-    "https://api.twitter.com/2/tweets/search/recent",
+    "https://api.x.com/2/tweets/search/recent",
     params={
         "query": topic,
         "tweet.fields": "public_metrics,author_id",
@@ -363,7 +363,7 @@ High-value conversations to engage with RIGHT NOW.
 topic = "open source AI"  # CHANGE THIS
 
 resp = session.get(
-    "https://api.twitter.com/2/tweets/search/recent",
+    "https://api.x.com/2/tweets/search/recent",
     params={
         "query": topic,
         "tweet.fields": "public_metrics,author_id",
@@ -403,12 +403,12 @@ What happened overnight? What should I post today?
 username = "yourusername"  # CHANGE THIS — user's own handle
 
 # Get user ID
-resp = session.get(f"https://api.twitter.com/2/users/by/username/{username}")
+resp = session.get(f"https://api.x.com/2/users/by/username/{username}")
 user_id = resp.json()["data"]["id"]
 
 # My mentions (who's talking about me?)
 resp2 = session.get(
-    f"https://api.twitter.com/2/users/{user_id}/mentions",
+    f"https://api.x.com/2/users/{user_id}/mentions",
     params={
         "tweet.fields": "public_metrics,author_id",
         "expansions": "author_id",
@@ -440,7 +440,7 @@ Write high-performing X posts using the actual X algorithm ranking weights.
 **Step 1: Research** using X API search to find what's working:
 ```python
 resp = session.get(
-    "https://api.twitter.com/2/tweets/search/recent",
+    "https://api.x.com/2/tweets/search/recent",
     params={"query": topic, "tweet.fields": "public_metrics", "sort_order": "relevancy", "max_results": 20},
 )
 # Find 3-5 high-performing examples, identify hooks and formats that work
@@ -552,6 +552,8 @@ All API responses are saved to `~/.socialclaw/data/` as JSON.
 
 ## API Reference
 
+Base URL: `https://api.x.com/2` · Docs: [docs.x.com/x-api/introduction](https://docs.x.com/x-api/introduction)
+
 | Endpoint (X API v2) | What | CLI command |
 |---------------------|------|-------------|
 | `GET /2/users/by/username/{u}` | Profile stats | `insight @handle` |
@@ -561,8 +563,8 @@ All API responses are saved to `~/.socialclaw/data/` as JSON.
 | `GET /2/tweets/search/recent` | Search tweets | `search <query>` |
 | `GET /2/tweets/{id}` | Single tweet data | `tweet <id>` |
 | `GET /2/tweets/search/recent?query=conversation_id:{id}` | Replies / thread | `thread <id>` |
-| `chat(model, prompt)` | LLM (OpenAI if OPENAI_API_KEY set) | `engage @handle` |
+| OpenAI chat completion | LLM (if OPENAI_API_KEY set) | `engage @handle` |
 
 ## Triggers
 
-Activate when user mentions: `socialclaw`, `twitter`, `x.com`, `trending`, `followers`, `mentions`, `competitor`, `audience`, `growth`, `engagement`, `KOL`, `influencer`, `marketing intel`, `who follows`, `what's trending`, `analyze @`, `compare @`, `draft`, `write post`, `write tweet`, `review post`, `score tweet`, `optimize tweet`, `generate image for post`, `post about`
+Activate when user mentions: `socialclaw`, `twitter`, `x.com`, `trending`, `followers`, `mentions`, `competitor`, `audience`, `growth`, `engagement`, `KOL`, `influencer`, `marketing intel`, `who follows`, `what's trending`, `analyze @`, `compare @`, `draft`, `write post`, `write tweet`, `review post`, `score tweet`, `optimize tweet`, `generate image for post`, `post about`, `tweet analysis`, `x api`, `social media intelligence`, `viral`, `retweets`, `likes`, `impressions`, `who is @`, `tell me about @`

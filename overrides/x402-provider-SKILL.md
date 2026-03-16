@@ -9,7 +9,7 @@ description: |
   AVAILABLE SERVICES:
   - X/Twitter intelligence: accounts, tweets, search, followers, mentions, analytics
   TRIGGERS: research, social data, twitter, x.com, tweet, trending, followers, mentions, engagement, KOL, influencer, social media data, x/twitter
-homepage: https://developer.twitter.com/
+homepage: https://developer.x.com/
 ---
 
 # SocialClaw — X/Twitter Intelligence (X API v2)
@@ -40,7 +40,7 @@ session = requests.Session()
 session.headers["Authorization"] = f"Bearer {BEARER_TOKEN}"
 ```
 
-Get your Bearer Token at [developer.twitter.com](https://developer.twitter.com/).
+Get your Bearer Token at [developer.x.com](https://developer.x.com/).
 
 ## X/Twitter Intelligence (SocialClaw)
 
