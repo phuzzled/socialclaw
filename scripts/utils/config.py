@@ -52,6 +52,11 @@ def get_openai_key() -> Optional[str]:
     return os.environ.get("OPENAI_API_KEY")
 
 
+def get_gemini_key() -> Optional[str]:
+    """Get Google/Gemini API key for Nano Banana 2 image generation."""
+    return os.environ.get("GOOGLE_API_KEY") or os.environ.get("GEMINI_API_KEY")
+
+
 def get_config() -> Dict[str, Any]:
     """
     Get current configuration from environment and defaults.
@@ -100,6 +105,9 @@ def validate_config() -> Dict[str, Any]:
 
     if get_openai_key():
         warnings.append("OpenAI API key found — AI analysis features enabled")
+
+    if get_gemini_key():
+        warnings.append("Google API key found — Nano Banana 2 image generation enabled")
 
     return {
         "valid": len(errors) == 0,
