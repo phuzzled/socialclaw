@@ -2,8 +2,6 @@
 
 <div align="center">
 
-<img src="assets/banner.png" alt="SocialSwag" width="600" />
-
 <h3>X/Twitter intelligence + AI-powered content agent.</h3>
 
 <p>Research → Analyze → Write → Optimize → Visualize. Full loop.<br>
