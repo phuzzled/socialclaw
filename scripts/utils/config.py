@@ -15,7 +15,7 @@ API_KEY_FILE = CONFIG_DIR / "api_key"
 
 # Default configuration values
 DEFAULTS = {
-    "api_base_url": "https://api.x.com/2",
+    "bsky_base_url": "https://api.bsky.app",
     "timeout": 30.0,
     "max_results": 100,
     "default_model": "x-ai/grok-4.20-beta",
@@ -24,46 +24,47 @@ DEFAULTS = {
 
 def _load_env_file() -> None:
     """Load environment variables from .env file if it exists."""
-    env_path = Path(__file__).parent.parent.parent / ".env"
-    if env_path.exists():
-        with open(env_path) as f:
-            for line in f:
-                line = line.strip()
-                if line and not line.startswith("#") and "=" in line:
-                    key, value = line.split("=", 1)
-                    key = key.strip()
-                    value = value.strip()
-                    if key and value and not os.environ.get(key):
-                        os.environ[key] = value
+    # Look for .env in multiple locations (in order of preference)
+    env_paths = [
+        Path.cwd() / ".env",  # Current working directory
+        Path(__file__).parent.parent.parent / ".env",  # Project root (relative to this file)
+        Path.home() / ".socialswag" / ".env",  # ~/.socialswag/.env
+        Path.home() / "socialswag" / ".env",  # ~/socialswag/.env (legacy)
+    ]
+
+    for env_path in env_paths:
+        if env_path.exists():
+            with open(env_path) as f:
+                for line in f:
+                    line = line.strip()
+                    if line and not line.startswith("#") and "=" in line:
+                        key, value = line.split("=", 1)
+                        key = key.strip()
+                        value = value.strip()
+                        if key and value and not os.environ.get(key):
+                            os.environ[key] = value
+            break  # Stop after first .env file found
 
 
 # Load .env file on module import
 _load_env_file()
 
 
-def get_api_key() -> Optional[str]:
+def get_bluesky_credentials() -> Optional[tuple]:
     """
-    Get X API Bearer Token.
+    Get Bluesky credentials (handle and app password).
 
     Checks in order:
-    1. X_API_BEARER_TOKEN environment variable (preferred)
-    2. TWITTER_BEARER_TOKEN environment variable (legacy fallback)
-    3. ~/.socialswag/api_key file
+    1. BLUESKY_HANDLE and BLUESKY_APP_PASSWORD environment variables
 
     Returns:
-        Bearer token string or None
+        Tuple of (handle, app_password) or None
     """
-    key = (
-        os.environ.get("X_API_BEARER_TOKEN") or
-        os.environ.get("TWITTER_BEARER_TOKEN")
-    )
-    if key:
-        return key
+    handle = os.environ.get("BLUESKY_HANDLE")
+    app_password = os.environ.get("BLUESKY_APP_PASSWORD")
 
-    if API_KEY_FILE.exists():
-        key = API_KEY_FILE.read_text().strip()
-        if key:
-            return key
+    if handle and app_password:
+        return (handle, app_password)
 
     return None
 
@@ -96,14 +97,14 @@ def get_config() -> Dict[str, Any]:
         Configuration dictionary
     """
     return {
-        "api_base_url": os.environ.get("X_API_BASE_URL", DEFAULTS["api_base_url"]),
-        "api_key_set": bool(get_api_key()),
+        "bsky_base_url": os.environ.get("BSKY_BASE_URL", DEFAULTS["bsky_base_url"]),
+        "bluesky_creds_set": bool(get_bluesky_credentials()),
         "openai_key_set": bool(get_openai_key()),
         "openrouter_key_set": bool(get_openrouter_key()),
         "openrouter_model": get_openrouter_model(),
         "google_key_set": bool(get_gemini_key()),
-        "timeout": float(os.environ.get("X_TIMEOUT", DEFAULTS["timeout"])),
-        "max_results": int(os.environ.get("X_MAX_RESULTS", DEFAULTS["max_results"])),
+        "timeout": float(os.environ.get("BSKY_TIMEOUT", DEFAULTS["timeout"])),
+        "max_results": int(os.environ.get("BSKY_MAX_RESULTS", DEFAULTS["max_results"])),
     }
 
 
@@ -122,20 +123,12 @@ def validate_config() -> Dict[str, Any]:
     errors = []
     warnings = []
 
-    if not get_api_key():
-        errors.append(
-            "No X API Bearer Token found. "
-            "Set X_API_BEARER_TOKEN environment variable "
-            "or save your token to ~/.socialswag/api_key. "
-            "Get yours at https://developer.x.com/"
+    # Bluesky can work without auth for public data, but some features need it
+    if not get_bluesky_credentials():
+        warnings.append(
+            "No Bluesky credentials found. Set BLUESKY_HANDLE and BLUESKY_APP_PASSWORD "
+            "for full access. Public data is still accessible without credentials."
         )
-
-    api_url = os.environ.get("X_API_BASE_URL", DEFAULTS["api_base_url"])
-    if not api_url.startswith(("http://", "https://")):
-        errors.append("Invalid X_API_BASE_URL format")
-
-    if os.environ.get("X_API_BASE_URL"):
-        warnings.append("Using custom X API base URL (not default)")
 
     if get_openai_key():
         warnings.append("OpenAI API key found — AI analysis features enabled")

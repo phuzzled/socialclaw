@@ -1,37 +1,40 @@
 #!/usr/bin/env python3
 """
-SocialSwag — X/Twitter Marketing Intelligence + AI Agent
+SocialSwag — Bluesky Marketing Intelligence + AI Agent
 
-Official X API v2 for structured data. OpenRouter (x-ai/grok-4.20-beta default) for AI analysis.
+AT Protocol (Bluesky) for structured data. OpenRouter (x-ai/grok-4.20-beta default) for AI analysis.
 Nano Banana 2 (Gemini 3.1 Flash Image) for image generation.
 
 Data layer:
-  - X API v2 (primary): user info, search, mentions, followers, tweets
+  - Bluesky AT Protocol (primary): user profiles, posts, search, followers
   - OpenRouter (default): AI-powered analysis via x-ai/grok-4.20-beta
   - OpenAI (fallback): AI-powered analysis if OPENAI_API_KEY set
   - Nano Banana 2 (optional): image generation via GOOGLE_API_KEY
 
 Environment:
-  - X_API_BEARER_TOKEN: Required for X API access
+  - BLUESKY_HANDLE: Bluesky handle (e.g., "user.bsky.team")
+  - BLUESKY_APP_PASSWORD: Bluesky app password (get from Bluesky settings)
   - OPENROUTER_API_KEY: For AI analysis (default, x-ai/grok-4.20-beta)
   - OPENROUTER_MODEL: Override default model (e.g., "anthropic/claude-3.5-sonnet")
   - OPENAI_API_KEY: Fallback for AI analysis if no OpenRouter key
   - GOOGLE_API_KEY: For image generation
 
+Note: Public data accessible without credentials. Full access requires Bluesky login.
+
 Workflows:
-  1. insight @username     — deep-dive account analysis
+  1. insight @handle      — deep-dive account analysis
   2. radar <topic>         — trending topics + content opportunities
   3. compare @a @b         — side-by-side competitor analysis
-  4. audience @username    — segment followers by influence tier
+  4. audience @handle      — segment followers by influence tier
   5. scout <topic>         — identify top voices in a niche
   6. hitlist <topic>       — rank high-value conversations to join
-  7. engage @username      — find mentions & generate reply drafts
-  8. check @username       — verify posted tweets & engagement
-  9. search <query>        — structured search + top tweets
- 10. tweet <id_or_url>     — look up specific tweet + replies
- 11. thread <id_or_url>    — get full tweet thread
+  7. engage @handle        — find posts & generate reply drafts
+  8. check @handle         — verify posted content & engagement
+  9. search <query>        — structured search + top posts
+ 10. post <id_or_uri>      — look up specific post + replies
+ 11. thread <id_or_uri>   — get full post thread
  12. analytics @handle     — author intelligence report
- 13. brief @handle         — morning brief with suggested actions
+  13. brief @handle         — morning brief with suggested actions
 """
 
 import json
@@ -44,9 +47,9 @@ from typing import Any, Dict, List, Optional
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 try:
-    from scripts.utils.config import get_api_key, get_openai_key, get_openrouter_key, get_openrouter_model
+    from scripts.utils.config import get_bluesky_credentials, get_openai_key, get_openrouter_key, get_openrouter_model
 except ImportError:
-    from utils.config import get_api_key, get_openai_key, get_openrouter_key, get_openrouter_model
+    from utils.config import get_bluesky_credentials, get_openai_key, get_openrouter_key, get_openrouter_model
 
 
 def _ensure_deps():
@@ -61,23 +64,43 @@ def _ensure_deps():
         )
 
 
-# ── X API v2 Client ─────────────────────────────────────────────
+# ── Bluesky AT Protocol Client ──────────────────────────────────
 
-class XClient:
-    """Thin wrapper around the X (Twitter) API v2."""
+class BlueskyClient:
+    """Client for Bluesky (AT Protocol) public API."""
 
-    BASE = "https://api.x.com/2"
+    BASE = "https://api.bsky.app/xrpc"
 
-    def __init__(self, bearer_token: str, timeout: float = 30.0):
+    def __init__(self, handle: str = None, app_password: str = None, timeout: float = 30.0):
         import requests
         self._session = requests.Session()
-        self._session.headers["Authorization"] = f"Bearer {bearer_token}"
         self._timeout = timeout
         self._calls = 0
+        self._auth = None
 
-    def get(self, path: str, **params) -> dict:
+        # If credentials provided, authenticate to get access token
+        if handle and app_password:
+            self._authenticate(handle, app_password)
+
+    def _authenticate(self, handle: str, app_password: str):
+        """Authenticate with Bluesky to get session token."""
+        try:
+            r = self._session.post(
+                f"{self.BASE}/com.atproto.server.createSession",
+                json={"identifier": handle, "password": app_password},
+                timeout=self._timeout,
+            )
+            r.raise_for_status()
+            data = r.json()
+            self._auth = data.get("accessJwt")
+            self._session.headers["Authorization"] = f"Bearer {self._auth}"
+        except Exception as e:
+            print(f"  Warning: Bluesky authentication failed: {e}")
+            self._auth = None
+
+    def get(self, endpoint: str, **params) -> dict:
         self._calls += 1
-        url = f"{self.BASE}{path}"
+        url = f"{self.BASE}/{endpoint.lstrip('/')}"
         try:
             r = self._session.get(
                 url,
@@ -91,37 +114,12 @@ class XClient:
                 status = exc.response.status_code if exc.response is not None else "?"
                 if status == 401:
                     raise RuntimeError(
-                        "X API auth failed (401) — check your X_API_BEARER_TOKEN. "
-                        "Get a token at https://developer.x.com/"
-                    ) from exc
-                if status == 403:
-                    raise RuntimeError(
-                        f"X API access denied (403) for {path} — your token may lack "
-                        "required permissions. Check your X Developer Portal app settings "
-                        "at https://developer.x.com/"
+                        "Bluesky auth failed (401) — check your BLUESKY_HANDLE and "
+                        "BLUESKY_APP_PASSWORD. Get an app password from Bluesky settings."
                     ) from exc
                 if status == 429:
-                    reset = (
-                        exc.response.headers.get("x-rate-limit-reset", "")
-                        if exc.response is not None
-                        else ""
-                    )
-                    if reset:
-                        try:
-                            from datetime import datetime, timezone
-                            reset_dt = datetime.fromtimestamp(int(reset), tz=timezone.utc)
-                            reset_str = reset_dt.strftime("%H:%M:%S UTC")
-                        except (ValueError, OSError):
-                            reset_str = reset
-                    else:
-                        reset_str = "a moment"
                     raise RuntimeError(
-                        f"X API rate limit reached (429) — retry after {reset_str}. "
-                        "See https://docs.x.com/x-api/rate-limits"
-                    ) from exc
-                if status == 503:
-                    raise RuntimeError(
-                        "X API temporarily unavailable (503) — please retry in a moment"
+                        "Bluesky API rate limit reached (429) — please retry later"
                     ) from exc
             raise
         return r.json()
@@ -137,243 +135,240 @@ class XClient:
 # ── Data Normalization ───────────────────────────────────────────
 
 def _norm_user(u: dict) -> dict:
-    """Normalize an X API v2 user object to the internal format."""
-    m = u.get("public_metrics", {})
+    """Normalize a Bluesky user object to the internal format."""
     return {
-        "userName": u.get("username", ""),
-        "name": u.get("name", ""),
+        "userName": u.get("handle", ""),
+        "name": u.get("displayName", u.get("handle", "")),
         "description": u.get("description", ""),
-        "location": u.get("location", ""),
+        "location": "",
         "url": u.get("url", ""),
-        "profileImageUrl": u.get("profile_image_url", ""),
-        "createdAt": u.get("created_at", ""),
-        "followers": m.get("followers_count", 0),
-        "followersCount": m.get("followers_count", 0),
-        "following": m.get("following_count", 0),
-        "followingCount": m.get("following_count", 0),
-        "statusesCount": m.get("tweet_count", 0),
-        "tweetsCount": m.get("tweet_count", 0),
-        "listedCount": m.get("listed_count", 0),
-        "isBlueVerified": u.get("verified", False),
-        "id": u.get("id", ""),
-        # Keep legacy followers_count key used in follower-list display
-        "followers_count": m.get("followers_count", 0),
+        "profileImageUrl": u.get("avatar", ""),
+        "createdAt": u.get("indexedAt", ""),
+        "followers": u.get("followersCount", 0),
+        "followersCount": u.get("followersCount", 0),
+        "following": u.get("followingCount", 0),
+        "followingCount": u.get("followingCount", 0),
+        "statusesCount": u.get("postsCount", 0),
+        "tweetsCount": u.get("postsCount", 0),
+        "listedCount": 0,
+        "isBlueVerified": False,
+        "id": u.get("did", u.get("id", "")),
+        "followers_count": u.get("followersCount", 0),
     }
 
 
-def _norm_tweet(tw: dict, users_by_id: dict) -> dict:
-    """Normalize an X API v2 tweet object to the internal format."""
-    m = tw.get("public_metrics", {})
-    aid = tw.get("author_id", "")
-    raw_author = users_by_id.get(aid, {"id": aid, "username": "?", "name": "?"})
+def _norm_post(post: dict) -> dict:
+    """Normalize a Bluesky post object to the internal format."""
+    author = post.get("author", {})
+    record = post.get("record", {})
     return {
-        "id": tw.get("id", ""),
-        "text": tw.get("text", ""),
-        "lang": tw.get("lang", ""),
-        "author": _norm_user(raw_author),
-        "likeCount": m.get("like_count", 0),
-        "retweetCount": m.get("retweet_count", 0),
-        "replyCount": m.get("reply_count", 0),
-        "quoteCount": m.get("quote_count", 0),
-        "viewCount": m.get("impression_count", 0),
-        "bookmarkCount": m.get("bookmark_count", 0),
-        "createdAt": tw.get("created_at", ""),
-        "conversationId": tw.get("conversation_id", ""),
+        "id": post.get("uri", ""),
+        "text": record.get("text", post.get("text", "")),
+        "lang": "",
+        "author": _norm_user(author),
+        "likeCount": post.get("likeCount", 0),
+        "retweetCount": post.get("repostCount", 0),
+        "replyCount": post.get("replyCount", 0),
+        "quoteCount": 0,
+        "viewCount": 0,
+        "bookmarkCount": 0,
+        "createdAt": record.get("createdAt", post.get("indexedAt", "")),
+        "conversationId": "",
     }
 
 
-def _extract_users(data: dict) -> dict:
-    """Build {user_id: raw_user_dict} from X API v2 includes."""
-    return {u["id"]: u for u in data.get("includes", {}).get("users", [])}
+def _extract_posts(data: dict) -> list:
+    """Extract posts from Bluesky API response."""
+    feed = data.get("feed", [])
+    return [item.get("post", {}) for item in feed]
 
 
-# ── X API v2 Endpoint Functions ─────────────────────────────────
-
-_TWEET_FIELDS = "public_metrics,created_at,author_id,conversation_id,lang,entities"
-_USER_FIELDS = "public_metrics,description,username,name,verified,created_at,location,url,profile_image_url"
-_EXPANSIONS = "author_id"
+# ── Bluesky AT Protocol Endpoint Functions ────────────────────────
 
 
-def _x_user_info(client: XClient, username: str) -> dict:
-    """GET /2/users/by/username/{username}"""
+def _bsky_get_profile(client: BlueskyClient, handle: str) -> dict:
+    """GET app.bsky.actor.getProfile"""
     try:
-        data = client.get(
-            f"/users/by/username/{username}",
-            **{"user.fields": _USER_FIELDS},
-        )
-        return {"data": _norm_user(data.get("data", {}))}
+        data = client.get("app.bsky.actor.getProfile", actor=handle)
+        return {"data": _norm_user(data)}
     except Exception as e:
-        print(f"  Warning: Could not fetch user info for @{username}: {e}")
+        print(f"  Warning: Could not fetch profile for @{handle}: {e}")
         return {}
 
 
-def _x_user_id(client: XClient, username: str) -> Optional[str]:
-    """Resolve a username to its numeric user ID."""
-    info = _x_user_info(client, username)
+def _bsky_get_followers(client: BlueskyClient, handle: str, limit: int = 100) -> dict:
+    """GET app.bsky.graph.getFollowers"""
+    try:
+        data = client.get("app.bsky.graph.getFollowers", actor=handle, limit=limit)
+        followers = [_norm_user(u) for u in data.get("followers", [])]
+        return {"followers": followers, "total": data.get("total", len(followers))}
+    except Exception as e:
+        print(f"  Warning: Could not fetch followers for @{handle}: {e}")
+        return {"followers": [], "total": 0}
+
+
+def _bsky_get_following(client: BlueskyClient, handle: str, limit: int = 100) -> dict:
+    """GET app.bsky.graph.getFollows"""
+    try:
+        data = client.get("app.bsky.graph.getFollows", actor=handle, limit=limit)
+        following = [_norm_user(u) for u in data.get("following", [])]
+        return {"following": following}
+    except Exception as e:
+        print(f"  Warning: Could not fetch following for @{handle}: {e}")
+        return {"following": []}
+
+
+def _bsky_get_author_feed(client: BlueskyClient, handle: str, limit: int = 20) -> dict:
+    """GET app.bsky.feed.getAuthorFeed"""
+    try:
+        data = client.get("app.bsky.feed.getAuthorFeed", actor=handle, limit=limit)
+        posts = [_norm_post(p) for p in _extract_posts(data)]
+        return {"posts": posts}
+    except Exception as e:
+        print(f"  Warning: Could not fetch posts for @{handle}: {e}")
+        return {"posts": []}
+
+
+def _bsky_search_posts(client: BlueskyClient, query: str, limit: int = 25) -> dict:
+    """GET app.bsky.feed.searchPosts"""
+    try:
+        data = client.get("app.bsky.feed.searchPosts", q=query, limit=limit)
+        # Search returns posts directly, not wrapped in {"post": ...}
+        posts = [_norm_post(p) for p in data.get("posts", [])]
+        return {"posts": posts}
+    except Exception as e:
+        print(f"  Warning: Could not search posts for '{query}': {e}")
+        return {"posts": []}
+
+
+def _bsky_get_post_thread(client: BlueskyClient, uri: str) -> dict:
+    """GET app.bsky.feed.getPostThread"""
+    try:
+        data = client.get("app.bsky.feed.getPostThread", uri=uri, depth=10)
+        # Extract posts from thread
+        thread = []
+        if "thread" in data:
+            # Handle threadgate or post
+            thread_item = data["thread"]
+            if "post" in thread_item:
+                thread.append(_norm_post(thread_item["post"]))
+            # Add replies if present
+            if "replies" in thread_item:
+                for reply in thread_item["replies"]:
+                    if "post" in reply:
+                        thread.append(_norm_post(reply["post"]))
+        return {"posts": thread}
+    except Exception as e:
+        print(f"  Warning: Could not fetch thread for {uri}: {e}")
+        return {"posts": []}
+
+
+# Legacy function names for compatibility
+def _x_user_info(client: BlueskyClient, username: str) -> dict:
+    """Get user profile (Bluesky handle)"""
+    # Strip @ if present
+    username = username.lstrip("@")
+    return _bsky_get_profile(client, username)
+
+
+def _x_user_id(client: BlueskyClient, username: str) -> Optional[str]:
+    """Resolve a handle to DID."""
+    username = username.lstrip("@")
+    info = _bsky_get_profile(client, username)
     return info.get("data", {}).get("id")
 
 
-def _x_user_mentions(client: XClient, username: str) -> dict:
-    """GET /2/users/{id}/mentions"""
-    user_id = _x_user_id(client, username)
-    if not user_id:
-        return {"tweets": []}
+def _x_user_mentions(client: BlueskyClient, username: str) -> dict:
+    """Bluesky doesn't have mentions - use search instead."""
+    # Use search to find posts mentioning the user
+    username = username.lstrip("@")
     try:
-        data = client.get(
-            f"/users/{user_id}/mentions",
-            **{
-                "tweet.fields": _TWEET_FIELDS,
-                "expansions": _EXPANSIONS,
-                "user.fields": _USER_FIELDS,
-                "max_results": 100,
-            },
-        )
-        users = _extract_users(data)
-        tweets = [_norm_tweet(tw, users) for tw in (data.get("data") or [])]
-        return {"tweets": tweets}
+        # Search for posts mentioning the handle
+        data = client.get("app.bsky.feed.searchPosts", q=f"@{username}", limit=50)
+        posts = [_norm_post(p.get("post", {})) for p in data.get("posts", [])]
+        return {"tweets": posts}
     except Exception as e:
         print(f"  Warning: Could not fetch mentions for @{username}: {e}")
         return {"tweets": []}
 
 
-def _x_user_tweets(client: XClient, username: str) -> dict:
-    """GET /2/users/{id}/tweets"""
-    user_id = _x_user_id(client, username)
-    if not user_id:
-        return {"tweets": []}
-    try:
-        data = client.get(
-            f"/users/{user_id}/tweets",
-            **{
-                "tweet.fields": "public_metrics,created_at",
-                "max_results": 20,
-            },
-        )
-        user_data = _x_user_info(client, username).get("data", {})
-        tweets = []
-        for tw in (data.get("data") or []):
-            m = tw.get("public_metrics", {})
-            tweets.append({
-                "id": tw.get("id", ""),
-                "text": tw.get("text", ""),
-                "author": user_data,
-                "likeCount": m.get("like_count", 0),
-                "retweetCount": m.get("retweet_count", 0),
-                "replyCount": m.get("reply_count", 0),
-                "viewCount": m.get("impression_count", 0),
-                "createdAt": tw.get("created_at", ""),
-            })
-        return {"tweets": tweets}
-    except Exception as e:
-        print(f"  Warning: Could not fetch tweets for @{username}: {e}")
-        return {"tweets": []}
+def _x_user_tweets(client: BlueskyClient, username: str) -> dict:
+    """GET app.bsky.feed.getAuthorFeed"""
+    username = username.lstrip("@")
+    return _bsky_get_author_feed(client, username)
 
 
-def _x_user_followers(client: XClient, username: str) -> dict:
-    """GET /2/users/{id}/followers"""
-    user_id = _x_user_id(client, username)
-    if not user_id:
-        return {"followers": []}
-    try:
-        data = client.get(
-            f"/users/{user_id}/followers",
-            **{
-                "user.fields": _USER_FIELDS,
-                "max_results": 1000,
-            },
-        )
-        followers = [_norm_user(u) for u in (data.get("data") or [])]
-        return {"followers": followers}
-    except Exception as e:
-        print(f"  Warning: Could not fetch followers for @{username}: {e}")
-        return {"followers": []}
+def _x_user_followers(client: BlueskyClient, username: str) -> dict:
+    """GET app.bsky.graph.getFollowers"""
+    username = username.lstrip("@")
+    return _bsky_get_followers(client, username)
 
 
-def _x_search(client: XClient, query: str, query_type: str = "Latest") -> dict:
-    """GET /2/tweets/search/recent"""
-    try:
-        sort_order = "recency" if query_type == "Latest" else "relevancy"
-        data = client.get(
-            "/tweets/search/recent",
-            query=query,
-            **{
-                "tweet.fields": _TWEET_FIELDS,
-                "expansions": _EXPANSIONS,
-                "user.fields": _USER_FIELDS,
-                "max_results": 100,
-                "sort_order": sort_order,
-            },
-        )
-        users = _extract_users(data)
-        tweets = [_norm_tweet(tw, users) for tw in (data.get("data") or [])]
-        return {"tweets": tweets}
-    except Exception as e:
-        print(f"  Warning: Could not search tweets: {e}")
-        return {"tweets": []}
+def _x_search(client: BlueskyClient, query: str, query_type: str = "Latest") -> dict:
+    """GET app.bsky.feed.searchPosts"""
+    # Bluesky doesn't have "Latest" vs "Top" - just returns recent by relevance
+    result = _bsky_search_posts(client, query)
+    # Map "posts" to "tweets" for compatibility with existing workflow code
+    return {"tweets": result.get("posts", [])}
 
 
-def _x_trending(_client: XClient) -> dict:
-    """X API v2 trending is not available in standard access tiers."""
-    print("  Note: Trending topics require X API Pro tier or higher.")
+def _x_trending(_client: BlueskyClient) -> dict:
+    """Bluesky doesn't have trending topics API."""
+    # Could implement by searching for popular hashtags
     return {"data": {"topics": []}}
 
 
-def _x_articles_rising(_client: XClient) -> dict:
-    """Rising articles endpoint is not available in X API v2."""
+def _x_articles_rising(_client: BlueskyClient) -> dict:
+    """Bluesky doesn't have articles feature."""
     return {"data": {"articles": []}}
 
 
-def _x_tweet_lookup(client: XClient, tweet_ids: list) -> dict:
-    """GET /2/tweets/{id}"""
-    if not tweet_ids:
+def _x_tweet_lookup(client: BlueskyClient, post_uri: str) -> dict:
+    """GET app.bsky.feed.getPostThread"""
+    if not post_uri:
         return {"tweets": []}
-    tweet_id = tweet_ids[0] if isinstance(tweet_ids, list) else tweet_ids
     try:
-        data = client.get(
-            f"/tweets/{tweet_id}",
-            **{
-                "tweet.fields": _TWEET_FIELDS,
-                "expansions": _EXPANSIONS,
-                "user.fields": _USER_FIELDS,
-            },
-        )
-        users = _extract_users(data)
-        tw_data = data.get("data", {})
-        tweets = [_norm_tweet(tw_data, users)] if tw_data else []
-        return {"tweets": tweets}
+        # Ensure URI has the proper format
+        if not post_uri.startswith("at://"):
+            post_uri = f"at://{post_uri}"
+        data = client.get("app.bsky.feed.getPostThread", uri=post_uri, depth=1)
+        if "thread" in data and "post" in data["thread"]:
+            return {"tweets": [_norm_post(data["thread"]["post"])]}
+        return {"tweets": []}
     except Exception as e:
-        print(f"  Warning: Could not fetch tweet {tweet_id}: {e}")
+        print(f"  Warning: Could not fetch post {post_uri}: {e}")
         return {"tweets": []}
 
 
-def _x_tweet_replies(client: XClient, tweet_id: str) -> dict:
-    """Search for replies to a tweet via conversation_id."""
+def _x_tweet_replies(client: BlueskyClient, post_uri: str) -> dict:
+    """Get replies to a post."""
     try:
-        data = client.get(
-            "/tweets/search/recent",
-            query=f"conversation_id:{tweet_id}",
-            **{
-                "tweet.fields": _TWEET_FIELDS,
-                "expansions": _EXPANSIONS,
-                "user.fields": _USER_FIELDS,
-                "max_results": 100,
-            },
-        )
-        users = _extract_users(data)
-        tweets = [_norm_tweet(tw, users) for tw in (data.get("data") or [])]
-        return {"tweets": tweets}
+        if not post_uri.startswith("at://"):
+            post_uri = f"at://{post_uri}"
+        data = client.get("app.bsky.feed.getPostThread", uri=post_uri, depth=10)
+        posts = []
+        if "thread" in data:
+            thread = data["thread"]
+            if "replies" in thread:
+                for reply in thread["replies"]:
+                    if "post" in reply:
+                        posts.append(_norm_post(reply["post"]))
+        return {"tweets": posts}
     except Exception as e:
-        print(f"  Warning: Could not fetch replies for tweet {tweet_id}: {e}")
+        print(f"  Warning: Could not fetch replies for {post_uri}: {e}")
         return {"tweets": []}
 
 
-def _x_tweet_thread(client: XClient, tweet_id: str) -> dict:
-    """Get a tweet thread by fetching the conversation."""
-    return _x_tweet_replies(client, tweet_id)
+def _x_tweet_thread(client: BlueskyClient, post_uri: str) -> dict:
+    """Get a post thread."""
+    if not post_uri.startswith("at://"):
+        post_uri = f"at://{post_uri}"
+    return _bsky_get_post_thread(client, post_uri)
 
 
-def _x_author_analytics(client: XClient, handle: str) -> dict:
-    """Compute basic author analytics from profile + recent tweets."""
+def _x_author_analytics(client: BlueskyClient, handle: str) -> dict:
+    """Compute basic author analytics from profile + recent posts."""
+    handle = handle.lstrip("@")
     try:
         user_data = _x_user_info(client, handle).get("data", {})
         recent = _x_user_tweets(client, handle)
@@ -401,12 +396,12 @@ def _x_author_analytics(client: XClient, handle: str) -> dict:
 
 # ── API Dispatcher ───────────────────────────────────────────────
 
-def _api(client: XClient, endpoint: str, body: dict) -> dict:
+def _api(client: BlueskyClient, endpoint: str, body: dict) -> dict:
     """
-    Route old-style endpoint calls to the appropriate X API v2 function.
+    Route old-style endpoint calls to the appropriate Bluesky API function.
 
     This dispatcher preserves the existing workflow code structure while
-    mapping to the official X API v2 under the hood.
+    mapping to the Bluesky AT Protocol under the hood.
     """
     username = body.get("username") or body.get("handle", "")
 
@@ -425,7 +420,7 @@ def _api(client: XClient, endpoint: str, body: dict) -> dict:
     elif endpoint == "/v1/x/search":
         return _x_search(client, body.get("query", ""), body.get("queryType", "Latest"))
     elif endpoint == "/v1/x/tweets/lookup":
-        return _x_tweet_lookup(client, body.get("tweetIds", []))
+        return _x_tweet_lookup(client, body.get("tweetIds", [''])[0] if body.get("tweetIds") else "")
     elif endpoint == "/v1/x/tweets/replies":
         return _x_tweet_replies(client, body.get("tweetId", ""))
     elif endpoint == "/v1/x/tweets/thread":
@@ -463,17 +458,14 @@ def _display_name(entity: dict) -> str:
     return entity.get("name") or entity.get("displayName") or entity.get("userName") or "?"
 
 
-def _get_client() -> XClient:
-    """Get an X API v2 client using the configured Bearer Token."""
-    api_key = get_api_key()
-    if not api_key:
-        print("  Error: No X API Bearer Token found.")
-        print("  Set the X_API_BEARER_TOKEN environment variable.")
-        print("  Or save your token to ~/.socialswag/api_key")
-        print()
-        print("  Get your Bearer Token at: https://developer.x.com/")
-        sys.exit(1)
-    return XClient(api_key)
+def _get_client() -> BlueskyClient:
+    """Get a Bluesky client using the configured credentials."""
+    creds = get_bluesky_credentials()
+    if creds:
+        handle, app_password = creds
+        return BlueskyClient(handle, app_password)
+    # If no credentials, create client without auth (public data only)
+    return BlueskyClient()
 
 
 DATA_DIR = os.path.expanduser("~/.socialswag/data")
@@ -554,56 +546,65 @@ def _ai_analyze(prompt: str, system: str = None) -> Optional[str]:
         return None
 
 
-def _x_search_text(client: XClient, query: str, *, max_results: int = 10) -> str:
+def _x_search_text(client: BlueskyClient, query: str, *, max_results: int = 10) -> str:
     """
-    Search X/Twitter and return a formatted plain-text summary.
+    Search Bluesky and return a formatted plain-text summary.
 
     Used as the human-readable output replacement for Grok Live Search.
     """
     result = _x_search(client, query, "Latest")
-    tweets = result.get("tweets", [])[:max_results]
-    if not tweets:
-        return f"No recent tweets found for: {query}"
+    posts = result.get("tweets", [])[:max_results]
+    if not posts:
+        return f"No recent posts found for: {query}"
     lines = []
-    for tw in tweets:
+    for tw in posts:
         author = tw.get("author", {})
         handle = author.get("userName", "?")
         text = tw.get("text", "")[:200].replace("\n", " ")
         likes = tw.get("likeCount", 0)
         rts = tw.get("retweetCount", 0)
-        link = _tweet_link(tw)
+        link = _post_link(tw)
         lines.append(f"@{handle}: {text}")
-        lines.append(f"  Likes: {likes:,}  RTs: {rts:,}")
+        lines.append(f"  Likes: {likes:,}  Reposts: {rts:,}")
         if link:
             lines.append(f"  {link}")
         lines.append("")
     return "\n".join(lines)
 
 
-def _smart_search(client: XClient, query: str, query_type: str = "Latest") -> Dict[str, Any]:
-    """Search X/Twitter via the API and return structured results."""
+def _smart_search(client: BlueskyClient, query: str, query_type: str = "Latest") -> Dict[str, Any]:
+    """Search Bluesky via the API and return structured results."""
     result = _x_search(client, query, query_type)
     return {"source": "api", "data": result}
 
 
-def _smart_user_tweets(client: XClient, username: str) -> Dict[str, Any]:
-    """Fetch a user's recent tweets via the API."""
+def _smart_user_tweets(client: BlueskyClient, username: str) -> Dict[str, Any]:
+    """Fetch a user's recent posts via the API."""
     result = _x_user_tweets(client, username)
     return {"source": "api", "data": result}
 
 
 # ── Display Helpers ────────────────────────────────────────────
 
-def _tweet_link(tw: dict) -> str:
-    """Get direct link to a tweet."""
-    tid = tw.get("id", "")
+def _post_link(tw: dict) -> str:
+    """Get direct link to a Bluesky post."""
+    uri = tw.get("id", "")
     author = tw.get("author", {})
     handle = author.get("userName", "")
-    if tid and handle:
-        return f"https://x.com/{handle}/status/{tid}"
-    elif tid:
-        return f"https://x.com/i/status/{tid}"
+    if uri and handle:
+        # URI format: at://did:plc:.../app.bsky.feed.post/...
+        # Extract the rkey (last part after /)
+        if "/app.bsky.feed.post/" in uri:
+            rkey = uri.split("/app.bsky.feed.post/")[-1]
+            return f"https://bsky.app/profile/{handle}/post/{rkey}"
+        return f"https://bsky.app/profile/{handle}"
     return ""
+
+
+# Keep old name for backwards compatibility
+def _tweet_link(tw: dict) -> str:
+    """Get direct link (alias for _post_link)."""
+    return _post_link(tw)
 
 
 def _print_tweet(tw: dict, indent: str = "    ", max_text: int = 100):
@@ -636,7 +637,7 @@ def _print_grok_result(result: Dict[str, Any], label: str = ""):
 # ── Workflow 1: Insight Report ──────────────────────────────────
 
 def insight(username: str):
-    """Deep-dive analysis of an X/Twitter account."""
+    """Deep-dive analysis of a Bluesky account."""
     username = username.lstrip("@")
     client = _get_client()
 
@@ -715,7 +716,7 @@ def insight(username: str):
 # ── Workflow 2: Topic Radar ─────────────────────────────────────
 
 def radar(topic: str):
-    """What's hot on X/Twitter around a topic."""
+    """What's hot on Bluesky around a topic."""
     client = _get_client()
 
     print(f"\n{'=' * 60}")
@@ -743,7 +744,7 @@ def radar(topic: str):
     # 3. Top tweets
     print(f"\n  Searching top tweets...")
     top_result = _smart_search(client, topic, "Top")
-    _print_grok_result(top_result, "TOP PERFORMING TWEETS")
+    _print_grok_result(top_result, "TOP PERFORMING POSTS")
 
     # 4. Rising articles (not available in X API v2 standard tier)
     print("\n  Fetching rising articles...")
@@ -1101,7 +1102,7 @@ def engage(username: str, product: str = None):
     username = username.lstrip("@")
     client = _get_client()
 
-    products_context = product or "SocialSwag (X/Twitter intelligence)"
+    products_context = product or "SocialSwag (Bluesky intelligence)"
 
     print(f"\n{'=' * 60}")
     print(f"  SOCIALCLAW ENGAGE — @{username}")
@@ -1220,7 +1221,7 @@ def check(username: str):
             _print_tweet(tw, max_text=150)
             print()
     else:
-        print("  No recent tweets found.")
+        print("  No recent posts found.")
 
     # 3. Mention activity (structured API — stable)
     print("\n  Fetching new mentions...")
@@ -1249,7 +1250,7 @@ def check(username: str):
 # ── Workflow 9: Search (structured API first, Grok enhancement) ─
 
 def search(query: str, x_only: bool = True):
-    """Search X/Twitter — structured API first, Grok for AI analysis."""
+    """Search Bluesky — structured API first, Grok for AI analysis."""
     client = _get_client()
 
     print(f"\n{'=' * 60}")
@@ -1257,12 +1258,12 @@ def search(query: str, x_only: bool = True):
     print(f"{'=' * 60}")
 
     # 1. Search latest tweets
-    print("\n  Searching X API...")
+    print("\n  Searching Bluesky...")
     search_result = _smart_search(client, query, "Latest")
 
     if search_result["source"] == "api":
         tweets = search_result["data"].get("tweets", [])
-        print(f"\n  RESULTS ({len(tweets)} tweets found)")
+        print(f"\n  RESULTS ({len(tweets)} posts found)")
         for tw in tweets[:15]:
             _print_tweet(tw, max_text=120)
             print()
@@ -1278,9 +1279,9 @@ def search(query: str, x_only: bool = True):
             print(f"    Avg likes/tweet: {total_likes / len(tweets):.1f}")
 
         # 2. Also get top tweets
-        print(f"\n  Searching top tweets...")
+        print(f"\n  Searching top posts...")
         top_result = _smart_search(client, query, "Top")
-        _print_grok_result(top_result, "TOP PERFORMING TWEETS")
+        _print_grok_result(top_result, "TOP PERFORMING POSTS")
     else:
         print(f"\n  RESULTS")
         print(f"  {'-' * 56}")
@@ -1300,9 +1301,16 @@ def tweet(tweet_id: str):
     print(f"  SOCIALCLAW TWEET — {tweet_id}")
     print(f"{'=' * 60}")
 
-    # Extract tweet ID from URL if needed
+    # Extract post ID from URL if needed
     if "x.com/" in tweet_id or "twitter.com/" in tweet_id:
         tweet_id = tweet_id.rstrip("/").split("/")[-1]
+    elif "bsky.app/" in tweet_id:
+        # Handle Bluesky URL format: https://bsky.app/profile/{handle}/post/{rkey}
+        parts = tweet_id.rstrip("/").split("/")
+        if "post" in parts:
+            idx = parts.index("post")
+            if idx + 1 < len(parts):
+                tweet_id = parts[idx + 1]
 
     print("\n  Fetching tweet...")
     result = _api(client, "/v1/x/tweets/lookup", {"tweetIds": [tweet_id]})
@@ -1358,9 +1366,16 @@ def thread(tweet_id: str):
     print(f"  SOCIALCLAW THREAD — {tweet_id}")
     print(f"{'=' * 60}")
 
-    # Extract tweet ID from URL if needed
+    # Extract post ID from URL if needed
     if "x.com/" in tweet_id or "twitter.com/" in tweet_id:
         tweet_id = tweet_id.rstrip("/").split("/")[-1]
+    elif "bsky.app/" in tweet_id:
+        # Handle Bluesky URL format: https://bsky.app/profile/{handle}/post/{rkey}
+        parts = tweet_id.rstrip("/").split("/")
+        if "post" in parts:
+            idx = parts.index("post")
+            if idx + 1 < len(parts):
+                tweet_id = parts[idx + 1]
 
     print("\n  Fetching thread...")
     result = _api(client, "/v1/x/tweets/thread", {"tweetId": tweet_id})
@@ -1514,37 +1529,37 @@ def brief(username: str):
 
 # ── Helpers ────────────────────────────────────────────────────
 
-def _print_cost(client: XClient):
+def _print_cost(client: BlueskyClient):
     print(f"\n{'=' * 60}")
-    print(f"  X API calls made: {client.calls}")
+    print(f"  Bluesky API calls made: {client.calls}")
     print(f"{'=' * 60}")
 
 
 # ── CLI ─────────────────────────────────────────────────────────
 
 def _print_help():
-    print("SocialSwag v3 — X/Twitter Marketing Intelligence")
+    print("SocialSwag v4 — Bluesky Marketing Intelligence")
     print()
-    print("  Powered by the official X API v2 (https://docs.x.com/x-api/introduction).")
-    print("  Set X_API_BEARER_TOKEN to authenticate.")
+    print("  Powered by the AT Protocol (Bluesky).")
+    print("  Set BLUESKY_HANDLE and BLUESKY_APP_PASSWORD to authenticate.")
     print("  Optionally set OPENAI_API_KEY to enable AI-generated reply drafts.")
     print()
     print("COMMANDS:")
     print()
     print("  Account Intelligence:")
-    print("    insight @username          Deep-dive: profile, mentions, followers, tweets")
-    print("    audience @username         Segment followers by influence tier")
-    print("    analytics @username        Author intelligence report (posting patterns, reach)")
-    print("    brief @username            Morning brief: mentions, trends, actions")
-    print("    check @username            Verify posted tweets & check engagement")
+    print("    insight @handle            Deep-dive: profile, followers, posts")
+    print("    audience @handle           Segment followers by influence tier")
+    print("    analytics @handle          Author intelligence report (posting patterns, reach)")
+    print("    brief @handle              Morning brief: posts, trends, actions")
+    print("    check @handle              Verify posted content & check engagement")
     print()
     print("  Discovery & Search:")
-    print("    search <query>             Search X (structured API + top tweets)")
-    print("    radar <topic>              Trending topics + content opportunities")
+    print("    search <query>             Search Bluesky posts")
+    print("    radar <topic>             Trending topics + content opportunities")
     print("    scout <topic>              Find top voices and KOLs on a topic")
     print("    hitlist <topic>            Find high-value conversations to join")
-    print("    tweet <id_or_url>          Look up a specific tweet + replies")
-    print("    thread <id_or_url>         Get a full tweet thread")
+    print("    post <id_or_url>           Look up a specific post + replies")
+    print("    thread <id_or_url>         Get a full post thread")
     print()
     print("  Competitive & Engagement:")
     print("    compare @user1 @user2      Side-by-side competitor analysis")
@@ -1557,13 +1572,14 @@ def _print_help():
     print("  socialswag radar 'AI infrastructure'")
     print("  socialswag scout 'machine learning'")
     print("  socialswag hitlist 'open source AI'")
-    print("  socialswag tweet https://x.com/user/status/1234567890123456789")
-    print("  socialswag thread https://x.com/user/status/1234567890123456789")
-    print("  socialswag analytics @VitalikButerin")
-    print("  socialswag compare @openai @anthropic")
+    print("  socialswag post https://bsky.app/profile/handle.bsky.team/post/abc123")
+    print("  socialswag thread https://bsky.app/profile/handle.bsky.team/post/abc123")
+    print("  socialswag analytics @handle.bsky.team")
+    print("  socialswag compare @a.bsky.team @b.bsky.team")
     print()
-    print("AUTH: Set X_API_BEARER_TOKEN environment variable or save to ~/.socialswag/api_key")
-    print("      Get your Bearer Token at: https://developer.x.com/")
+    print("AUTH: Set BLUESKY_HANDLE and BLUESKY_APP_PASSWORD environment variables")
+    print("      Get app password from Bluesky settings (not your login password)")
+    print("      Public data accessible without authentication")
     print("DATA: All responses saved to ~/.socialswag/data/")
 
 
