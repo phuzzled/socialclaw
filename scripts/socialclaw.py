@@ -67,12 +67,31 @@ class XClient:
 
     def get(self, path: str, **params) -> dict:
         self._calls += 1
-        r = self._session.get(
-            f"{self.BASE}{path}",
-            params={k: v for k, v in params.items() if v is not None},
-            timeout=self._timeout,
-        )
-        r.raise_for_status()
+        url = f"{self.BASE}{path}"
+        try:
+            r = self._session.get(
+                url,
+                params={k: v for k, v in params.items() if v is not None},
+                timeout=self._timeout,
+            )
+            r.raise_for_status()
+        except Exception as exc:
+            import requests as _req
+            if isinstance(exc, _req.exceptions.HTTPError):
+                status = exc.response.status_code if exc.response is not None else "?"
+                if status == 401:
+                    raise RuntimeError(
+                        f"X API auth failed (401) — check your X_API_BEARER_TOKEN"
+                    ) from exc
+                if status == 403:
+                    raise RuntimeError(
+                        f"X API access denied (403) for {path} — your token may lack required permissions"
+                    ) from exc
+                if status == 429:
+                    raise RuntimeError(
+                        f"X API rate limit reached (429) — wait before retrying"
+                    ) from exc
+            raise
         return r.json()
 
     @property

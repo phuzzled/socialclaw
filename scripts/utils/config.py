@@ -25,8 +25,8 @@ def get_api_key() -> Optional[str]:
     Get X API Bearer Token.
 
     Checks in order:
-    1. X_API_BEARER_TOKEN environment variable
-    2. TWITTER_BEARER_TOKEN environment variable
+    1. X_API_BEARER_TOKEN environment variable (preferred)
+    2. TWITTER_BEARER_TOKEN environment variable (legacy fallback)
     3. ~/.socialclaw/api_key file
 
     Returns:
