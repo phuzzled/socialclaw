@@ -3,10 +3,12 @@
 SocialClaw v3 — X/Twitter Marketing Intelligence
 
 Official X API v2 for structured data. Optional OpenAI for AI analysis.
+Nano Banana 2 (Gemini 3.1 Flash Image) for image generation.
 
 Data layer:
   - X API v2 (primary): user info, search, mentions, followers, tweets
   - OpenAI (optional, set OPENAI_API_KEY): AI-powered analysis
+  - Nano Banana 2 (optional, set GOOGLE_API_KEY): image generation
 
 Workflows:
   1. insight @username     — deep-dive account analysis

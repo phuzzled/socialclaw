@@ -258,7 +258,7 @@ Every API response is saved as JSON in `~/.socialclaw/data/`. You keep every res
 |---------|-------------|------|
 | `draft "topic"` | Algorithm-optimized post with 3 variations + strategy explanation | ~$0.03 |
 | `review` | Score your draft (1-10) with checklist audit + optimized rewrite | Free |
-| `image "description"` | X-optimized image (high contrast, bold colors, clean composition) | ~$0.05 |
+| `image "description"` | X-optimized image via Nano Banana 2 (high contrast, bold colors, clean composition) | ~$0.05 |
 
 **Full loop:** Research (`radar`/`scout`) → Write (`draft`) → Optimize (`review`) → Visualize (`image`) → Monitor (`brief`/`analytics`)
 
@@ -269,6 +269,7 @@ Every API response is saved as JSON in `~/.socialclaw/data/`. You keep every res
 - **API key auth.** Set `X_API_BEARER_TOKEN` — that's your authentication.
 - **Official X API v2.** Direct access to Twitter's data through their public API.
 - **Optional AI.** Set `OPENAI_API_KEY` to enable AI-generated reply drafts in `engage`.
+- **Image generation.** Set `GOOGLE_API_KEY` to enable `image` via [Nano Banana 2](https://ai.google.dev/gemini-api/docs/image-generation) (Gemini 3.1 Flash Image). Get your key at [aistudio.google.com](https://aistudio.google.com/).
 - **Data is yours.** Every response saved to `~/.socialclaw/data/`.
 
 [Full API Reference](docs/api-reference.md)

@@ -6,16 +6,17 @@ You are generating an optimized image for an X post about: **{{DESCRIPTION}}**
 
 ## Image Generation
 
-Use the OpenAI Images API directly (requires `OPENAI_API_KEY`):
+Use the Nano Banana 2 API (Gemini 3.1 Flash Image) directly (requires `GOOGLE_API_KEY`):
 
 ```python
+import base64
 import os
 import requests
 
-openai_key = os.environ.get("OPENAI_API_KEY")
-if not openai_key:
-    print("Set OPENAI_API_KEY to enable image generation.")
-    print("Get your key at: https://platform.openai.com/api-keys")
+gemini_key = os.environ.get("GOOGLE_API_KEY")
+if not gemini_key:
+    print("Set GOOGLE_API_KEY to enable image generation (Nano Banana 2).")
+    print("Get your key at: https://aistudio.google.com/")
 else:
     description = "{{DESCRIPTION}}"  # CHANGE THIS
     optimized_prompt = (
@@ -24,24 +25,33 @@ else:
     )
 
     r = requests.post(
-        "https://api.openai.com/v1/images/generations",
+        "https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-image-preview:generateContent",
         json={
-            "model": "dall-e-3",
-            "prompt": optimized_prompt,
-            "size": "1792x1024",   # best for X/Twitter preview
-            "quality": "standard",
-            "n": 1,
+            "contents": [
+                {"parts": [{"text": optimized_prompt}]}
+            ],
+            "generationConfig": {
+                "responseModalities": ["IMAGE"],
+            },
         },
-        headers={"Authorization": f"Bearer {openai_key}"},
+        headers={
+            "x-goog-api-key": gemini_key,
+            "Content-Type": "application/json",
+        },
         timeout=60,
     )
     r.raise_for_status()
-    image_url = r.json()["data"][0]["url"]
-    print(f"Image URL: {image_url}")
-    print(f"Revised prompt: {r.json()['data'][0].get('revised_prompt', '')}")
+    parts = r.json()["candidates"][0]["content"]["parts"]
+    for part in parts:
+        if "inline_data" in part:
+            image_data = base64.b64decode(part["inline_data"]["data"])
+            with open("generated_image.png", "wb") as f:
+                f.write(image_data)
+            print("Image saved as: generated_image.png")
+            break
 ```
 
-Cost: ~$0.040 per image (DALL-E 3 standard), ~$0.080 (HD quality).
+Cost: ~$0.04–$0.05 per image (Nano Banana 2 / Gemini 3.1 Flash Image).
 
 ## X-Optimized Image Guidelines
 
@@ -49,7 +59,7 @@ Cost: ~$0.040 per image (DALL-E 3 standard), ~$0.080 (HD quality).
 2. **Minimal Text** — X algorithm prefers native images over text-heavy graphics
 3. **Bold Colors** — Stand out in the timeline
 4. **Simple Composition** — Single clear focal point
-5. **Aspect Ratio** — `1792×1024` (16:9) for optimal X card preview; `1024×1024` for square posts
+5. **Aspect Ratio** — 16:9 for optimal X card preview; 1:1 for square posts
 
 ## Prompt Enhancement
 
@@ -62,16 +72,16 @@ Take the user's description and always add:
 
 ## Model Selection
 
-| Model | Size | Quality | Cost | Use when |
-|-------|------|---------|------|----------|
-| `dall-e-3` | 1792×1024 | standard | $0.040 | Most posts |
-| `dall-e-3` | 1024×1024 | hd | $0.080 | Important announcements |
-| `dall-e-3` | 1024×1024 | standard | $0.040 | Square posts |
+| Model | Aspect Ratio | Cost | Use when |
+|-------|-------------|------|----------|
+| `gemini-3.1-flash-image-preview` | 16:9 | ~$0.04 | Most posts (landscape) |
+| `gemini-3.1-flash-image-preview` | 1:1 | ~$0.04 | Square posts |
+| `gemini-3.1-flash-image-preview` | 4:3 | ~$0.04 | Blog-style previews |
 
 ## Output Format
 
 Present:
-1. Generated image (URL or saved file path)
+1. Generated image (saved file path: `generated_image.png`)
 2. The optimized prompt used
 3. Suggested accompanying post text
 4. Alternative prompt if the user wants variations

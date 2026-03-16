@@ -504,13 +504,13 @@ Analyze and score the user's draft against the X algorithm. Provide optimization
 
 ### 13. Image — Generate Post Visuals (`image "description"`)
 
-Generate optimized images for X posts. Requires an image generation API (e.g., DALL-E via OpenAI).
+Generate optimized images for X posts using **Nano Banana 2** (Gemini 3.1 Flash Image). Requires `GOOGLE_API_KEY` from [Google AI Studio](https://aistudio.google.com/).
 
 **X-optimized image guidelines:**
 - High contrast (stops the scroll)
 - Minimal text (algorithm prefers native images)
 - Bold colors, clean composition
-- 1200x675 for optimal X preview
+- 16:9 aspect ratio for optimal X preview
 - Posts with images get 2x engagement
 
 ---
@@ -564,6 +564,7 @@ Base URL: `https://api.x.com/2` · Docs: [docs.x.com/x-api/introduction](https:/
 | `GET /2/tweets/{id}` | Single tweet data | `tweet <id>` |
 | `GET /2/tweets/search/recent?query=conversation_id:{id}` | Replies / thread | `thread <id>` |
 | OpenAI chat completion | LLM (if OPENAI_API_KEY set) | `engage @handle` |
+| Nano Banana 2 (Gemini 3.1 Flash Image) | Image generation (if GOOGLE_API_KEY set) | `image "description"` |
 
 ## Triggers
 
