@@ -2,6 +2,7 @@
 SocialSwag Configuration Module.
 
 Handles API key management, environment variables, and configuration.
+Supports loading from .env file.
 """
 
 import os
@@ -17,7 +18,27 @@ DEFAULTS = {
     "api_base_url": "https://api.x.com/2",
     "timeout": 30.0,
     "max_results": 100,
+    "default_model": "x-ai/grok-4.20-beta",
 }
+
+
+def _load_env_file() -> None:
+    """Load environment variables from .env file if it exists."""
+    env_path = Path(__file__).parent.parent.parent / ".env"
+    if env_path.exists():
+        with open(env_path) as f:
+            for line in f:
+                line = line.strip()
+                if line and not line.startswith("#") and "=" in line:
+                    key, value = line.split("=", 1)
+                    key = key.strip()
+                    value = value.strip()
+                    if key and value and not os.environ.get(key):
+                        os.environ[key] = value
+
+
+# Load .env file on module import
+_load_env_file()
 
 
 def get_api_key() -> Optional[str]:
