@@ -1,62 +1,69 @@
 # API Reference
 
-All data through [BlockRun](https://blockrun.ai)'s unified gateway, powered by [AttentionVC](https://attentionvc.com).
+SocialClaw uses the official [X API v2](https://developer.twitter.com/en/docs/twitter-api).
 
 ## Setup
 
 ```python
-from pathlib import Path
+import os
+import requests
 
-chain_file = Path.home() / ".blockrun" / ".chain"
-chain = chain_file.read_text().strip() if chain_file.exists() else "base"
+BEARER_TOKEN = os.environ["X_API_BEARER_TOKEN"]
 
-if chain == "solana":
-    from blockrun_llm import setup_agent_solana_wallet
-    client = setup_agent_solana_wallet(silent=True)
-else:
-    from blockrun_llm import setup_agent_wallet
-    client = setup_agent_wallet(silent=True)
+session = requests.Session()
+session.headers["Authorization"] = f"Bearer {BEARER_TOKEN}"
+
+# Example: get user profile
+resp = session.get(
+    "https://api.twitter.com/2/users/by/username/jack",
+    params={"user.fields": "public_metrics,description,verified"},
+)
+user = resp.json()["data"]
+print(f"@{user['username']}: {user['public_metrics']['followers_count']:,} followers")
 ```
 
-## X/Twitter Data (16 endpoints)
+Or use the SocialClaw CLI (handles auth automatically):
 
-| Method | What | Cost |
-|--------|------|------|
-| `x_user_info(username)` | Profile, bio, stats, verification | $0.002 |
-| `x_user_lookup([users])` | Batch profiles, up to 100 | $0.002/user |
-| `x_followers(username)` | Follower list ~200/page | $0.05/page |
-| `x_followings(username)` | Following list ~200/page | $0.05/page |
-| `x_verified_followers(user_id)` | Blue-check followers only | $0.048/page |
-| `x_user_tweets(username)` | User's tweets + engagement | $0.032/page |
-| `x_user_mentions(username)` | Tweets mentioning user | $0.032/page |
-| `x_search(query)` | Search tweets, Latest or Top | $0.032/page |
-| `x_trending()` | Trending topics + view counts | $0.002 |
-| `x_articles_rising()` | Viral content detection | $0.05 |
-| `x_tweet_lookup([ids])` | Batch tweet data, up to 200 | $0.16/batch |
-| `x_tweet_replies(tweet_id)` | Replies to a tweet | $0.032/page |
-| `x_tweet_thread(tweet_id)` | Full conversation thread | $0.032/page |
-| `x_author_analytics(handle)` | Author intelligence score | $0.02 |
-| `x_compare_authors(h1, h2)` | Compare two accounts | $0.05 |
+```bash
+export X_API_BEARER_TOKEN="your_bearer_token_here"
+socialclaw insight @jack
+```
 
-## AI Models
+## Authentication
 
-| Method | What | Cost |
-|--------|------|------|
-| `chat(model, prompt)` | GPT-5.2, Grok, DeepSeek, Claude, Gemini | varies |
-| `chat(model, prompt, search=True)` | Grok with live X/Twitter search | ~$0.25 |
-| `search(query)` | Web + X + news search | ~$0.25 |
-| `generate(prompt)` | Image generation (DALL-E, Nano Banana) | $0.01-0.04 |
-| `image_edit(prompt, image)` | Image editing | $0.02-0.04 |
+Get your Bearer Token from [developer.twitter.com](https://developer.twitter.com/).
 
-## Wallet
+```bash
+# Option 1: environment variable
+export X_API_BEARER_TOKEN="your_bearer_token_here"
 
-SocialClaw auto-scans `~/.<any-folder>/wallet.json` and `solana-wallet.json`.
+# Option 2: config file
+mkdir -p ~/.socialclaw
+echo "your_bearer_token_here" > ~/.socialclaw/api_key
+```
 
-```python
-balance = client.get_balance()
-address = client.get_wallet_address()
+## X/Twitter Endpoints (via X API v2)
+
+| Endpoint | What | X API v2 path |
+|----------|------|---------------|
+| User profile | Profile, bio, stats, verification | `GET /2/users/by/username/{username}` |
+| User's tweets | Tweets + engagement metrics | `GET /2/users/{id}/tweets` |
+| User's mentions | Tweets mentioning user | `GET /2/users/{id}/mentions` |
+| Followers | Follower list | `GET /2/users/{id}/followers` |
+| Tweet search | Search recent tweets | `GET /2/tweets/search/recent` |
+| Tweet lookup | Single tweet data | `GET /2/tweets/{id}` |
+| Replies | Replies to a tweet | `GET /2/tweets/search/recent?query=conversation_id:{id}` |
+| Thread | Full conversation thread | `GET /2/tweets/search/recent?query=conversation_id:{id}` |
+
+## AI Models (Optional)
+
+Set `OPENAI_API_KEY` to enable AI-powered reply drafts in the `engage` workflow:
+
+```bash
+export OPENAI_API_KEY="your_openai_key"
+socialclaw engage @yourhandle
 ```
 
 ## Data Auto-Save
 
-All responses saved to `~/.blockrun/data/` as timestamped JSON.
+All responses saved to `~/.socialclaw/data/` as timestamped JSON.

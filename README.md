@@ -179,38 +179,43 @@ Posting patterns, audience composition, engagement trajectory, content performan
 
 **Claude Code** (one command):
 ```
-try https://github.com/BlockRunAI/socialclaw
+try https://github.com/phuzzled/socialclaw
 ```
 
 **Any agent / CLI**:
 ```bash
-git clone https://github.com/BlockRunAI/socialclaw && cd socialclaw
-bash install.sh                          # takeover mode, Base chain (default)
-CHAIN=solana bash install.sh             # takeover mode, Solana chain
-MODE=safe bash install.sh                # install only SocialClaw
+git clone https://github.com/phuzzled/socialclaw && cd socialclaw
+bash install.sh                          # install SocialClaw (safe mode)
+MODE=takeover bash install.sh            # also replace sibling x402 skills
 MODE=force bash install.sh               # overwrite every sibling skill
 bash install.sh --dry-run                # preview changes
 bash install.sh --uninstall              # restore backups + remove launcher
 ```
 
-This installs the skill, creates a `socialclaw` launcher in `~/.local/bin`, installs the SDK, and auto-detects your wallet.
+This installs the skill, creates a `socialclaw` launcher in `~/.local/bin`, and installs dependencies.
 
-Wallet auto-detected from `~/.*/*wallet*.json`. Fund with USDC. No API keys, no config, no signup.
+**Authentication** — get your Bearer Token from [developer.twitter.com](https://developer.twitter.com/) and set it:
+
+```bash
+export X_API_BEARER_TOKEN="your_bearer_token_here"
+# Or save permanently:
+mkdir -p ~/.socialclaw && echo "your_token" > ~/.socialclaw/api_key
+```
+
+No crypto wallets. No subscriptions. One API key and you're running.
 
 ---
 
-## Why $0.08 beats $49/month
+## Why API Access beats $49/month
 
 |  | Dashboard tools | SocialClaw |
 |---|---|---|
-| **You pay** | $49-99/month whether you use it or not | $0.08 per report, only when you need it |
+| **You pay** | $49-99/month whether you use it or not | X API subscription + one command |
 | **You get** | Charts you read with your eyes | JSON your agent processes instantly |
 | **You do** | Log in, click around, screenshot results | One function call, structured output |
 | **Your agent can use it** | No (human-only UI) | Yes (that's the whole point) |
-| **10 reports/day for a month** | $49/month | $24/month (and you keep the data) |
-| **1 report this week** | Still $49/month | $0.08 total |
 
-Every paid response is saved as JSON in `~/.blockrun/data/`. You paid for it — you keep it forever.
+Every API response is saved as JSON in `~/.socialclaw/data/`. You keep every result.
 
 ---
 
@@ -219,11 +224,11 @@ Every paid response is saved as JSON in `~/.blockrun/data/`. You paid for it —
 | Platform | How |
 |----------|-----|
 | **Claude Code** | Installs as a skill. Say "analyze @elonmusk on Twitter". |
-| **OpenAI Codex** | Install `blockrun-llm>=0.8.0` for Base or `blockrun-llm[solana]>=0.8.0` for Solana. |
+| **OpenAI Codex** | Install `requests>=2.28.0`, set `X_API_BEARER_TOKEN`. |
 | **Gemini CLI** | Auto-installs to `~/.gemini/antigravity/skills/socialclaw`. |
-| **Cursor / Windsurf** | Agent reads CLAUDE.md, calls SDK via terminal. |
+| **Cursor / Windsurf** | Agent reads CLAUDE.md, calls CLI via terminal. |
 | **Any terminal** | `socialclaw radar "topic"` |
-| **Your own agent** | Use `LLMClient` on Base or `SolanaLLMClient` on Solana. |
+| **Your own agent** | Use `requests` to call X API v2 with your Bearer Token. |
 
 ---
 
@@ -261,13 +266,12 @@ Every paid response is saved as JSON in `~/.blockrun/data/`. You paid for it —
 
 ## How It Works
 
-- **No API keys.** Your USDC wallet IS your authentication (x402 protocol).
-- **No subscriptions.** Pay per call. $1 = ~12 full reports.
-- **Private key stays local.** Only signatures are sent over the wire.
-- **Base or Solana.** Your choice. Same SDK, same endpoints.
-- **Data is yours.** Every response saved to `~/.blockrun/data/`.
+- **API key auth.** Set `X_API_BEARER_TOKEN` — that's your authentication.
+- **Official X API v2.** Direct access to Twitter's data through their public API.
+- **Optional AI.** Set `OPENAI_API_KEY` to enable AI-generated reply drafts in `engage`.
+- **Data is yours.** Every response saved to `~/.socialclaw/data/`.
 
-[Full API Reference](docs/api-reference.md) · [Pricing details](docs/pricing.md)
+[Full API Reference](docs/api-reference.md)
 
 ---
 
@@ -306,8 +310,8 @@ You're here. One function call = one intelligence report. $0.08, not $49/month.
 
 <div align="center">
 
-**[blockrun.ai](https://blockrun.ai)** · **[AttentionVC](https://attentionvc.com)** · **[x402 Protocol](https://x402.org)** · **[hello@blockrun.ai](mailto:hello@blockrun.ai)**
+**[x.com/developer](https://developer.twitter.com/)** · **[hello@blockrun.ai](mailto:hello@blockrun.ai)**
 
-Powered by [BlockRun](https://blockrun.ai) × [AttentionVC](https://attentionvc.com) · MIT
+MIT
 
 </div>
